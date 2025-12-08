@@ -1,0 +1,72 @@
+# Pre-commit hooks configuration
+# See https://pre-commit.com for more information
+
+repos:
+  # Общие хуки для базовых проверок
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+      - id: end-of-file-fixer
+        name: Fix End of Files
+      - id: check-yaml
+        name: Check YAML
+      - id: check-toml
+        name: Check TOML
+      - id: check-json
+        name: Check JSON
+      - id: check-added-large-files
+        name: Check for Added Large Files
+        args: ['--maxkb=10000']
+      - id: check-merge-conflict
+        name: Check for Merge Conflicts
+      - id: detect-private-key
+        name: Detect Private Keys
+      - id: mixed-line-ending
+        name: Mixed Line Ending
+      - id: check-case-conflict
+        name: Check Case Conflict
+      - id: check-docstring-first
+        name: Check Docstring is First
+
+  # Ruff для линтинга и форматирования
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.8
+    hooks:
+      # Запустить линтер
+      - id: ruff
+        name: Ruff Linter
+        args: [--fix]
+      # Запустить форматтер
+      - id: ruff-format
+        name: Ruff Formatter
+
+  # MyPy для проверки типов
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.0
+    hooks:
+      - id: mypy
+        name: MyPy Type Checker
+        args: [--strict, --ignore-missing-imports]
+        exclude: ^(tests/|notebooks/|docs/|test_environment\.py|setup\.py|src/data/make_dataset\.py|src/features/build_features\.py|src/models/|src/visualization/)
+
+  # Bandit для проверки безопасности
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.2
+    hooks:
+      - id: bandit
+        name: Bandit Security Linter
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
+
+# Конфигурация для CI
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false
