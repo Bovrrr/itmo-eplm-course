@@ -318,11 +318,11 @@ uv run ruff format src/
 
 ### Pre-commit Hooks
 
-![Pre-commit hooks](docs/screenshots/image.png)
+![Pre-commit hooks](docs/screenshots/pre-commit-hooks.png)
 
 ### Docker
 
-![Docker build and tests](docs/screenshots/image-1.png)
+![Docker build and tests](docs/screenshots/docker.png)
 
 - **Образ собран:** `itmo-eplm-course:latest` (1.42 GB)
 - **Контейнер запускается:** выводит `Hello from itmo-eplm-course!`
@@ -330,7 +330,7 @@ uv run ruff format src/
 
 ### Проверка качества кода
 
-![Code quality checks](docs/screenshots/image-2.png)
+![Code quality checks](docs/screenshots/code-quality.png)
 
 - **Ruff:** ✅ Ошибок не найдено
 - **MyPy (strict):** ✅ Ошибок типов не найдено
@@ -410,7 +410,7 @@ uv run dvc add data/raw/titanic.csv
 # Создан файл data/raw/titanic.csv.dvc
 ```
 
-![DVC версионирование raw данных](docs/screenshots/dvc-versioning.png)
+![alt text](docs/screenshots/dvc-conf.png)
 
 **Статус:** ✅ Raw данные версионируются через DVC
 
@@ -443,15 +443,15 @@ with mlflow.start_run():
 #### Просмотр результатов
 
 ```bash
-# Запуск MLflow UI (правильно с uv run)
-uv run mlflow ui --port 5000
+# Запуск MLflow UI
+mlflow ui --port 5000
 # Доступна на http://localhost:5000
 
 # Или через Docker
 docker-compose up mlflow
 ```
 
-![MLflow UI с экспериментами и метриками](docs/screenshots/mlflow-ui.png)
+![alt text](docs/screenshots/mlflow-ui.png)
 
 **Статус:** ✅ MLflow настроена, эксперименты логируются и отслеживаются
 
