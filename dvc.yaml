@@ -1,0 +1,23 @@
+stages:
+  prepare:
+    cmd: uv run python -m src.data.make_dataset
+    deps:
+      - src/data/make_dataset.py
+    outs:
+      - data/processed/titanic_processed.csv:
+          cache: true
+    metrics:
+      - data/processed/data_summary.json:
+          cache: false
+
+  train:
+    cmd: uv run python src/models/train_model.py
+    deps:
+      - data/processed/titanic_processed.csv
+      - src/models/train_model.py
+    outs:
+      - models/model.pkl:
+          cache: true
+    metrics:
+      - models/metrics.json:
+          cache: false
