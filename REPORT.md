@@ -314,6 +314,30 @@ uv run ruff format src/
 
 ---
 
+## Результаты проверок
+
+### Pre-commit Hooks
+
+![Pre-commit hooks](docs/screenshots/image.png)
+
+### Docker
+
+![Docker build and tests](docs/screenshots/image-1.png)
+
+- **Образ собран:** `itmo-eplm-course:latest` (1.42 GB)
+- **Контейнер запускается:** выводит `Hello from itmo-eplm-course!`
+- **Библиотеки работают:** numpy, pandas, sklearn, catboost, matplotlib, seaborn, jupyter ✅
+
+### Проверка качества кода
+
+![Code quality checks](docs/screenshots/image-2.png)
+
+- **Ruff:** ✅ Ошибок не найдено
+- **MyPy (strict):** ✅ Ошибок типов не найдено
+- **Bandit:** ✅ Уязвимостей не найдено
+
+---
+
 ## Заключение
 
 Рабочее место для Data Scientist полностью настроено и готово к использованию. Все инструменты интегрированы, качество кода обеспечено автоматическими проверками, приложение контейнеризовано для воспроизводимости.

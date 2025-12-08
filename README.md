@@ -255,7 +255,6 @@ uv lock --upgrade-package package-name
 
 - [SETUP.md](docs/SETUP.md) - Детальная инструкция по настройке окружения
 - [REPORT.md](REPORT.md) - Отчет о выполнении ДЗ 1
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Руководство для контрибьюторов
 
 ## Лицензия
 
@@ -263,7 +262,7 @@ MIT License - см. файл [LICENSE](LICENSE)
 
 ## Авторы
 
-- Baurzhan - [GitHub](https://github.com/baurzhan)
+- Baurzhan - [GitHub](https://github.com/Bovrrr)
 
 ## Благодарности
 
