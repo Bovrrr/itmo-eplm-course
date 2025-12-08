@@ -1,0 +1,38 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: uv run python -m src.data.make_dataset
+    deps:
+    - path: src/data/make_dataset.py
+      hash: md5
+      md5: 86e88ff92a8f5b43f897a79391574a21
+      size: 3669
+    outs:
+    - path: data/processed/data_summary.json
+      hash: md5
+      md5: fe4cb55d19ebb9d0684c9c501a68364e
+      size: 172
+    - path: data/processed/titanic_processed.csv
+      hash: md5
+      md5: 74527ee58a377ae510ef6081b4000c1b
+      size: 3539
+  train:
+    cmd: uv run python src/models/train_model.py
+    deps:
+    - path: data/processed/titanic_processed.csv
+      hash: md5
+      md5: 74527ee58a377ae510ef6081b4000c1b
+      size: 3539
+    - path: src/models/train_model.py
+      hash: md5
+      md5: b124243924d6ba3b8c911a0c8a158d46
+      size: 4818
+    outs:
+    - path: models/metrics.json
+      hash: md5
+      md5: 827ead021c2b209bf44dcc8657c91ba3
+      size: 77
+    - path: models/model.pkl
+      hash: md5
+      md5: bde82e1a7b10cdccef2079f75155bc13
+      size: 68009
