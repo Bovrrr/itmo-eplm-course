@@ -1,0 +1,219 @@
+[project]
+name = "itmo-eplm-course"
+version = "0.1.0"
+description = "ITMO Engineering Practices in ML - Homework 1: Data Science Workspace Setup"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [
+    { name = "Baurzhan", email = "baurzhan@example.com" }
+]
+keywords = ["ml", "data-science", "mlops", "machine-learning"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+# Основные зависимости (будут добавлены в БЛОКЕ 3)
+dependencies = []
+
+[project.optional-dependencies]
+# Зависимости для ML экспериментов (будут добавлены в БЛОКЕ 3)
+ml = []
+
+# Зависимости для работы с данными (будут добавлены в БЛОКЕ 3)
+data = []
+
+[dependency-groups]
+dev = [
+    "bandit[toml]>=1.9.2",
+    "ipython>=9.8.0",
+    "mypy>=1.19.0",
+    "pre-commit>=4.5.0",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+# =============================================================================
+# Ruff Configuration
+# =============================================================================
+[tool.ruff]
+# Максимальная длина строки
+line-length = 100
+indent-width = 4
+
+# Python версия
+target-version = "py313"
+
+# Директории для исключения
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+[tool.ruff.lint]
+# Включить проверки
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "TCH",    # flake8-type-checking
+    "TID",    # flake8-tidy-imports
+    "Q",      # flake8-quotes
+    "PL",     # pylint
+]
+
+# Игнорировать определенные правила
+ignore = [
+    "E501",    # line too long (обрабатывается formatter)
+    "PLR0913", # too many arguments
+    "PLR2004", # magic value comparison
+]
+
+# Разрешить автоматическое исправление
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+# Тесты могут использовать assert и иметь более свободные правила
+"tests/**/*.py" = ["S101", "PLR2004", "PLR0913"]
+# __init__.py файлы могут быть пустыми
+"__init__.py" = ["F401"]
+# Notebooks могут иметь более свободные правила
+"notebooks/**/*.py" = ["E402", "F401"]
+
+[tool.ruff.format]
+# Использовать двойные кавычки
+quote-style = "double"
+# Отступы пробелами
+indent-style = "space"
+# Нормализовать строковые литералы
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+# =============================================================================
+# MyPy Configuration
+# =============================================================================
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+pretty = true
+
+# Игнорировать импорты без типов для внешних библиотек
+[[tool.mypy.overrides]]
+module = [
+    "sklearn.*",
+    "pandas.*",
+    "numpy.*",
+    "matplotlib.*",
+    "seaborn.*",
+    "catboost.*",
+]
+ignore_missing_imports = true
+
+# =============================================================================
+# Bandit Configuration
+# =============================================================================
+[tool.bandit]
+exclude_dirs = ["tests", "notebooks", ".venv", "venv"]
+skips = ["B101", "B601"]
+
+# =============================================================================
+# Pytest Configuration
+# =============================================================================
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
