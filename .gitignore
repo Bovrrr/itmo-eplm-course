@@ -235,6 +235,11 @@ data/external/*
 !data/processed/.gitkeep
 !data/interim/.gitkeep
 !data/external/.gitkeep
+# DVC metadata files for data versioning
+!data/raw/*.dvc
+!data/processed/*.dvc
+!data/interim/*.dvc
+!data/external/*.dvc
 *.csv
 *.tsv
 *.parquet
