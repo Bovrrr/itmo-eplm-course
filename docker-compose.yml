@@ -1,0 +1,77 @@
+# =============================================================================
+# Docker Compose для ITMO EPLM Course
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Основной контейнер приложения
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-app
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      # Монтирование данных и моделей для персистентности
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./notebooks:/app/notebooks
+    networks:
+      - ml-network
+    command: python main.py
+
+  # ---------------------------------------------------------------------------
+  # Jupyter Notebook сервер
+  # ---------------------------------------------------------------------------
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-jupyter
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      # Монтирование для работы с ноутбуками
+      - ./notebooks:/app/notebooks
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./src:/app/src
+    networks:
+      - ml-network
+    command: >
+      jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=''
+      --NotebookApp.password=''
+      --notebook-dir=/app/notebooks
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  ml-network:
+    driver: bridge
+    name: itmo-eplm-network
+
+# -----------------------------------------------------------------------------
+# Volumes (опционально, если нужна персистентность между пересборками)
+# -----------------------------------------------------------------------------
+volumes:
+  data:
+    name: itmo-eplm-data
+  models:
+    name: itmo-eplm-models

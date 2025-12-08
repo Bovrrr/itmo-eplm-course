@@ -1,0 +1,114 @@
+# =============================================================================
+# Docker ignore file для ITMO EPLM Course
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+.github
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing and QA
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/
+
+# Data files (большие файлы не должны попадать в образ)
+data/raw/*
+data/processed/*
+data/external/*
+data/interim/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+!data/interim/.gitkeep
+
+# Models (большие файлы моделей)
+models/*
+!models/.gitkeep
+*.pkl
+*.h5
+*.pt
+*.pth
+*.onnx
+*.pb
+
+# Reports and docs (не нужны в production)
+reports/
+docs/
+*.md
+!README.md
+
+# ML tracking
+mlruns/
+.mlflow/
+wandb/
+tensorboard/
+
+# Temporary files
+*.log
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Pre-commit
+.pre-commit-config.yaml
+.pre-commit-hooks/
+
+# UV lock file (копируется явно в Dockerfile)
+# uv.lock
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+
+# CI/CD
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Other
+*.bak
+*.swp
+*.swo
+.env
+.env.*
+!.env.example
