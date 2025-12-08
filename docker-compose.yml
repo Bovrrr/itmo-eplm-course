@@ -59,6 +59,33 @@ services:
       --NotebookApp.password=''
       --notebook-dir=/app/notebooks
 
+  # ---------------------------------------------------------------------------
+  # MLflow UI сервер для отслеживания экспериментов
+  # ---------------------------------------------------------------------------
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-mlflow
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      # Монтирование для хранения экспериментов
+      - ./mlruns:/app/mlruns
+      - ./models:/app/models
+    networks:
+      - ml-network
+    command: >
+      mlflow ui
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri file:/app/mlruns
+
 # -----------------------------------------------------------------------------
 # Networks
 # -----------------------------------------------------------------------------
