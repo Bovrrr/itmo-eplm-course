@@ -410,6 +410,8 @@ uv run dvc add data/raw/titanic.csv
 # Создан файл data/raw/titanic.csv.dvc
 ```
 
+![DVC версионирование raw данных](docs/screenshots/dvc-versioning.png)
+
 **Статус:** ✅ Raw данные версионируются через DVC
 
 ### 6.2 MLflow для версионирования моделей (3 балла)
@@ -441,13 +443,15 @@ with mlflow.start_run():
 #### Просмотр результатов
 
 ```bash
-# Запуск MLflow UI
-mlflow ui --port 5000
+# Запуск MLflow UI (правильно с uv run)
+uv run mlflow ui --port 5000
 # Доступна на http://localhost:5000
 
 # Или через Docker
 docker-compose up mlflow
 ```
+
+![MLflow UI с экспериментами и метриками](docs/screenshots/mlflow-ui.png)
 
 **Статус:** ✅ MLflow настроена, эксперименты логируются и отслеживаются
 
