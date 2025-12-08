@@ -205,3 +205,61 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ML/Data Science specific
+# Trained models
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+*.pb
+*.joblib
+*.model
+*.weights
+*.ckpt
+*.safetensors
+models/*
+!models/.gitkeep
+checkpoints/
+*.bin
+
+# Data files
+data/raw/*
+data/processed/*
+data/interim/*
+data/external/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/interim/.gitkeep
+!data/external/.gitkeep
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.sqlite
+*.db
+
+# Experiment tracking and MLOps
+mlruns/
+.mlflow/
+wandb/
+.wandb/
+tensorboard/
+tb_logs/
+.neptune/
+outputs/
+multirun/
+.dvc/
+lightning_logs/
+
+# Hydra configuration
+.hydra/
+hydra/
+
+# Reports and visualizations
+reports/figures/*
+!reports/figures/.gitkeep
