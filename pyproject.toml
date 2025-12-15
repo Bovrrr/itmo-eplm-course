@@ -30,6 +30,9 @@ dependencies = [
     "pandas>=2.3.3",
     "scikit-learn>=1.7.2",
     "seaborn>=0.13.2",
+    "click>=8.3.1",
+    "tqdm>=4.67.1",
+    "rich>=14.2.0",
 ]
 
 [project.optional-dependencies]
@@ -180,15 +183,22 @@ module = [
     "dvc.*",
     "mlflow.*",
     "joblib.*",
+    "yaml",
+    "click",
 ]
 ignore_missing_imports = true
+
+# Игнорировать untyped-decorator для CLI скриптов с click
+[[tool.mypy.overrides]]
+module = ["src.experiments.*"]
+disable_error_code = ["untyped-decorator"]
 
 # =============================================================================
 # Bandit Configuration
 # =============================================================================
 [tool.bandit]
 exclude_dirs = ["tests", "notebooks", ".venv", "venv"]
-skips = ["B101", "B601"]
+skips = ["B101", "B601", "B110"]
 
 # =============================================================================
 # Pytest Configuration

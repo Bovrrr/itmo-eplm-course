@@ -1,0 +1,26 @@
+{
+  "best_accuracy": {
+    "config_name": "svc_rbf_c1",
+    "model_class": "SVC",
+    "value": 0.7105263157894737,
+    "run_id": "a425c3d8457b40a09aed7ad116c886cd"
+  },
+  "best_precision": {
+    "config_name": "svc_rbf_c1",
+    "model_class": "SVC",
+    "value": 0.7878787878787878,
+    "run_id": "a425c3d8457b40a09aed7ad116c886cd"
+  },
+  "best_recall": {
+    "config_name": "catboost_deep",
+    "model_class": "CatBoostClassifier",
+    "value": 0.5238095238095238,
+    "run_id": "e4bfd4b2279c43b58aacef84686bd1bd"
+  },
+  "best_f1_score": {
+    "config_name": "catboost_deep",
+    "model_class": "CatBoostClassifier",
+    "value": 0.5945945945945946,
+    "run_id": "e4bfd4b2279c43b58aacef84686bd1bd"
+  }
+}
