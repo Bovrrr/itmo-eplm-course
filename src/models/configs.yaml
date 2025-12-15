@@ -1,0 +1,189 @@
+# Конфигурации моделей для экспериментов
+# Каждая конфигурация включает класс модели, описание и гиперпараметры
+
+# ============================================
+# LogisticRegression (4 варианта)
+# ============================================
+logistic_regression_l1:
+  model_class: LogisticRegression
+  description: Logistic Regression with L1 regularization (C=0.1)
+  params:
+    penalty: l1
+    C: 0.1
+    solver: liblinear
+    random_state: 42
+    max_iter: 1000
+
+logistic_regression_l2_weak:
+  model_class: LogisticRegression
+  description: Logistic Regression with L2 regularization (C=1.0)
+  params:
+    penalty: l2
+    C: 1.0
+    solver: lbfgs
+    random_state: 42
+    max_iter: 1000
+
+logistic_regression_l2_strong:
+  model_class: LogisticRegression
+  description: Logistic Regression with L2 regularization (C=10.0)
+  params:
+    penalty: l2
+    C: 10.0
+    solver: lbfgs
+    random_state: 42
+    max_iter: 1000
+
+logistic_regression_elasticnet:
+  model_class: LogisticRegression
+  description: Logistic Regression with ElasticNet (l1_ratio=0.5)
+  params:
+    penalty: elasticnet
+    C: 1.0
+    solver: saga
+    l1_ratio: 0.5
+    random_state: 42
+    max_iter: 2000
+
+# ============================================
+# SVC (3 варианта)
+# ============================================
+svc_linear:
+  model_class: SVC
+  description: Support Vector Classifier with linear kernel
+  params:
+    kernel: linear
+    C: 1.0
+    random_state: 42
+    probability: true
+
+svc_rbf_c1:
+  model_class: SVC
+  description: SVC with RBF kernel (C=1.0, gamma=scale)
+  params:
+    kernel: rbf
+    C: 1.0
+    gamma: scale
+    random_state: 42
+    probability: true
+
+svc_rbf_c10:
+  model_class: SVC
+  description: SVC with RBF kernel (C=10.0, gamma=scale)
+  params:
+    kernel: rbf
+    C: 10.0
+    gamma: scale
+    random_state: 42
+    probability: true
+
+# ============================================
+# RandomForestClassifier (4 варианта)
+# ============================================
+random_forest_small:
+  model_class: RandomForestClassifier
+  description: Random Forest with 50 trees and max_depth=5
+  params:
+    n_estimators: 50
+    max_depth: 5
+    random_state: 42
+    n_jobs: -1
+
+random_forest_medium:
+  model_class: RandomForestClassifier
+  description: Random Forest with 100 trees and max_depth=10
+  params:
+    n_estimators: 100
+    max_depth: 10
+    random_state: 42
+    n_jobs: -1
+
+random_forest_large:
+  model_class: RandomForestClassifier
+  description: Random Forest with 200 trees and unlimited depth
+  params:
+    n_estimators: 200
+    max_depth: null  # null в YAML = None в Python
+    random_state: 42
+    n_jobs: -1
+
+random_forest_sqrt_features:
+  model_class: RandomForestClassifier
+  description: Random Forest with 100 trees and sqrt features
+  params:
+    n_estimators: 100
+    max_features: sqrt
+    random_state: 42
+    n_jobs: -1
+
+# ============================================
+# GradientBoostingClassifier (3 варианта)
+# ============================================
+gradient_boosting_slow:
+  model_class: GradientBoostingClassifier
+  description: Gradient Boosting with slow learning (lr=0.01, n_est=200)
+  params:
+    learning_rate: 0.01
+    n_estimators: 200
+    max_depth: 3
+    random_state: 42
+
+gradient_boosting_fast:
+  model_class: GradientBoostingClassifier
+  description: Gradient Boosting with fast learning (lr=0.1, n_est=100)
+  params:
+    learning_rate: 0.1
+    n_estimators: 100
+    max_depth: 3
+    random_state: 42
+
+gradient_boosting_deep:
+  model_class: GradientBoostingClassifier
+  description: Gradient Boosting with deeper trees (max_depth=5)
+  params:
+    learning_rate: 0.1
+    n_estimators: 100
+    max_depth: 5
+    random_state: 42
+
+# ============================================
+# CatBoostClassifier (2 варианта)
+# ============================================
+catboost_shallow:
+  model_class: CatBoostClassifier
+  description: CatBoost with 100 iterations and depth=4
+  params:
+    iterations: 100
+    depth: 4
+    learning_rate: 0.1
+    random_state: 42
+    verbose: false
+
+catboost_deep:
+  model_class: CatBoostClassifier
+  description: CatBoost with 200 iterations and depth=6
+  params:
+    iterations: 200
+    depth: 6
+    learning_rate: 0.05
+    random_state: 42
+    verbose: false
+
+# ============================================
+# KNeighborsClassifier (2 варианта)
+# ============================================
+knn_3_neighbors:
+  model_class: KNeighborsClassifier
+  description: K-Nearest Neighbors with k=3 (uniform weights)
+  params:
+    n_neighbors: 3
+    weights: uniform
+    n_jobs: -1
+
+knn_5_distance:
+  model_class: KNeighborsClassifier
+  description: K-Nearest Neighbors with k=5 (distance weights)
+  params:
+    n_neighbors: 5
+    weights: distance
+    n_jobs: -1

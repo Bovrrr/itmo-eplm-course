@@ -4,25 +4,26 @@ from pathlib import Path
 
 import click
 import pandas as pd
+import seaborn as sns
 from dotenv import find_dotenv, load_dotenv
-from sklearn.datasets import load_iris
+from sklearn.preprocessing import StandardScaler
 
 
-def load_titanic_from_sklearn() -> pd.DataFrame:
-    """Load Titanic-like dataset from sklearn Iris dataset for demonstration."""
-    iris = load_iris(as_frame=True)
-    df = iris.frame
-    # Rename to be more Titanic-like for demo purposes
-    df = df.rename(
-        columns={
-            "sepal length (cm)": "Age",
-            "sepal width (cm)": "Fare",
-            "petal length (cm)": "Parch",
-            "petal width (cm)": "SibSp",
-        }
-    )
-    df["Survived"] = (iris.target > 0).astype(int)
-    df["PassengerId"] = range(len(df))
+def load_titanic_dataset() -> pd.DataFrame:
+    """Load Titanic dataset from seaborn.
+
+    Returns:
+        DataFrame with Titanic data (891 rows, 15 columns)
+    """
+    df = sns.load_dataset("titanic")
+
+    # Rename 'survived' to 'Survived' for consistency
+    df = df.rename(columns={"survived": "Survived"})
+
+    # Add PassengerId if not exists
+    if "PassengerId" not in df.columns:
+        df["PassengerId"] = range(len(df))
+
     return df
 
 
@@ -38,36 +39,68 @@ def prepare_data(input_path: Path, output_path: Path) -> None:
     # Load data
     logger.info(f"Loading data from {input_path}")
     if not input_path.exists():
-        logger.warning(f"Input file {input_path} not found, creating sample data")
-        df = load_titanic_from_sklearn()
+        logger.warning(f"Input file {input_path} not found, loading from seaborn")
+        df = load_titanic_dataset()
         input_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(input_path, index=False)
-        logger.info(f"Created sample data at {input_path}")
+        logger.info(f"Created Titanic data at {input_path}")
     else:
         df = pd.read_csv(input_path)
 
     logger.info(f"Loaded {len(df)} rows and {len(df.columns)} columns")
 
-    # Basic data cleaning
-    logger.info("Performing data cleaning...")
+    # Titanic-specific preprocessing
+    logger.info("Performing Titanic preprocessing...")
+
+    # Select features for modeling
+    # Keep only numerical features: age, sibsp, parch, fare, pclass
+    selected_cols = ["age", "sibsp", "parch", "fare", "pclass", "Survived"]
+
+    # Check if columns exist
+    missing_cols = [col for col in selected_cols if col not in df.columns]
+    if missing_cols:
+        logger.warning(f"Missing columns: {missing_cols}, using available columns")
+        selected_cols = [col for col in selected_cols if col in df.columns]
+
+    df = df[selected_cols].copy()
 
     # Remove duplicates
     initial_rows = len(df)
     df = df.drop_duplicates()
     logger.info(f"Removed {initial_rows - len(df)} duplicate rows")
 
-    # Handle missing values - forward fill for now
+    # Handle missing values
     missing_before = df.isnull().sum().sum()
-    df = df.fillna(df.mean(numeric_only=True))
+
+    # Fill age with median
+    if "age" in df.columns:
+        df["age"] = df["age"].fillna(df["age"].median())
+
+    # Fill fare with median
+    if "fare" in df.columns:
+        df["fare"] = df["fare"].fillna(df["fare"].median())
+
+    # Fill other numeric columns with 0
+    df = df.fillna(0)
+
     logger.info(f"Filled {missing_before} missing values")
+
+    # Apply StandardScaler to features (not target)
+    if "Survived" in df.columns:
+        feature_cols = [col for col in df.columns if col != "Survived"]
+        scaler = StandardScaler()
+        df[feature_cols] = scaler.fit_transform(df[feature_cols])
+        logger.info(f"Applied StandardScaler to {len(feature_cols)} features")
 
     # Reset index
     df = df.reset_index(drop=True)
 
+    # Note: PassengerId removed - it's just an index with no predictive power
+
     # Save processed data
     output_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_path, index=False)
-    logger.info(f"Saved processed data to {output_path} ({len(df)} rows)")
+    logger.info(f"Saved processed data to {output_path} ({len(df)} rows, {len(df.columns)} cols)")
 
     # Save data summary as metrics
     summary = {
@@ -75,6 +108,9 @@ def prepare_data(input_path: Path, output_path: Path) -> None:
         "n_columns": int(len(df.columns)),
         "n_missing": int(df.isnull().sum().sum()),
         "columns": list(df.columns),
+        "target_distribution": df["Survived"].value_counts().to_dict()
+        if "Survived" in df.columns
+        else {},
     }
     summary_path = output_path.parent / "data_summary.json"
     with open(summary_path, "w") as f:
