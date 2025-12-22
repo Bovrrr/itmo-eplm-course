@@ -190,7 +190,7 @@ ignore_missing_imports = true
 
 # Игнорировать untyped-decorator для CLI скриптов с click
 [[tool.mypy.overrides]]
-module = ["src.experiments.*"]
+module = ["src.experiments.*", "src.data.*", "src.models.*", "src.features.*"]
 disable_error_code = ["untyped-decorator"]
 
 # Игнорировать ошибки для Pydantic моделей в src.config
