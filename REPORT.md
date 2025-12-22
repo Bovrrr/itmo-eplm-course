@@ -1952,7 +1952,7 @@ uv run dvc pull
 
 ### 8.6 Скриншоты
 
-#### СКРИНШОТ 1: Валидация конфигураций
+#### Валидация конфигураций
 
 **Команда:**
 ```bash
@@ -1968,7 +1968,7 @@ uv run python -m src.config.loader
 
 ---
 
-#### СКРИНШОТ 2: Работа split_dataset
+#### Работа split_dataset
 
 **Команда:**
 ```bash
@@ -1984,7 +1984,7 @@ uv run python -m src.data.split_dataset --config configs/pipeline.yaml
 
 ---
 
-#### СКРИНШОТ 3: DVC DAG
+#### DVC DAG
 
 **Команда:**
 ```bash
@@ -2000,7 +2000,7 @@ uv run dvc dag
 
 ---
 
-#### СКРИНШОТ 4: DVC Repro с параллелизмом
+#### DVC Repro с параллелизмом
 
 **Команда:**
 ```bash
@@ -2019,7 +2019,7 @@ uv run dvc repro -v
 
 ---
 
-#### СКРИНШОТ 5: DVC Metrics
+#### DVC Metrics
 
 **Команда:**
 ```bash
@@ -2035,7 +2035,7 @@ uv run dvc metrics show --md
 
 ---
 
-#### СКРИНШОТ 7: MLflow UI с Pydantic
+#### MLflow UI
 
 **Команда:**
 ```bash
