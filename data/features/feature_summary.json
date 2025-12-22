@@ -1,0 +1,13 @@
+{
+  "total_features": 6,
+  "total_samples": 529,
+  "feature_names": [
+    "age",
+    "sibsp",
+    "parch",
+    "fare",
+    "pclass",
+    "Survived"
+  ],
+  "target_column": "Survived"
+}
