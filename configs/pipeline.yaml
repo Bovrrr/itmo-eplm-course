@@ -1,0 +1,23 @@
+# Конфигурация ML pipeline
+
+data_split:
+  train_size: 0.7
+  val_size: 0.15
+  test_size: 0.15
+  random_state: 42
+  stratify: true
+
+data_validation:
+  check_missing: true
+  max_missing_ratio: 0.1
+  check_duplicates: true
+  check_outliers: true
+  outlier_std_threshold: 3.0
+
+model_validation:
+  min_accuracy: 0.6
+  min_f1_score: 0.5
+  max_overfitting_gap: 0.1
+
+mlflow_tracking_uri: "file:./mlruns"
+mlflow_experiment_name: "titanic_classification"

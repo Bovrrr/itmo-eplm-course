@@ -1,0 +1,6 @@
+base: ../base/base_classifier.yaml
+model_class: KNeighborsClassifier
+description: K-Nearest Neighbors with k=3 (uniform weights)
+n_neighbors: 3
+weights: uniform
+n_jobs: -1

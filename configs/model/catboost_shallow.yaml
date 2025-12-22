@@ -1,0 +1,7 @@
+base: ../base/base_classifier.yaml
+model_class: CatBoostClassifier
+description: CatBoost with 100 iterations and depth=4
+iterations: 100
+depth: 4
+learning_rate: 0.1
+verbose: false
