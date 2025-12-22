@@ -122,6 +122,7 @@ ignore = [
     "E501",    # line too long (обрабатывается formatter)
     "PLR0913", # too many arguments
     "PLR2004", # magic value comparison
+    "PLR0915", # too many statements in function
 ]
 
 # Разрешить автоматическое исправление

@@ -1,7 +1,8 @@
 """Feature engineering для ML моделей.
 
-На данном этапе это заглушка для демонстрации DVC pipeline.
-Копирует train.csv → train_features.csv без трансформаций.
+Применяет StandardScaler к данным:
+- Fit на train set
+- Transform на train/val/test sets
 """
 
 import json
@@ -10,29 +11,44 @@ from typing import Any
 
 import click
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 from src.config.loader import load_pipeline_config
 from src.utils.notifications import notify_info, notify_metrics, notify_success, stage_notification
 
 
-def generate_features(data: pd.DataFrame) -> pd.DataFrame:
-    """Сгенерировать признаки из данных.
+def apply_feature_scaling(
+    train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, StandardScaler]:
+    """Применить StandardScaler к данным.
 
-    На данном этапе - заглушка, возвращает исходные данные.
-    В будущем здесь будут:
-    - Feature engineering (новые признаки)
-    - Feature selection (отбор признаков)
-    - Feature scaling (нормализация)
+    Fit на train, transform на train/val/test.
 
     Args:
-        data: Исходные данные
+        train: Train dataset
+        val: Validation dataset
+        test: Test dataset
 
     Returns:
-        DataFrame с признаками
+        Кортеж (train_scaled, val_scaled, test_scaled, scaler)
     """
-    # TODO: Реальный feature engineering
-    # Пока просто возвращаем исходные данные
-    return data.copy()
+    # Определить feature columns (всё кроме Survived)
+    feature_cols = [col for col in train.columns if col != "Survived"]
+
+    # Fit scaler только на train
+    scaler = StandardScaler()
+    scaler.fit(train[feature_cols])
+
+    # Transform все три датасета
+    train_scaled = train.copy()
+    val_scaled = val.copy()
+    test_scaled = test.copy()
+
+    train_scaled[feature_cols] = scaler.transform(train[feature_cols])
+    val_scaled[feature_cols] = scaler.transform(val[feature_cols])
+    test_scaled[feature_cols] = scaler.transform(test[feature_cols])
+
+    return train_scaled, val_scaled, test_scaled, scaler
 
 
 def calculate_feature_importance(data: pd.DataFrame) -> dict[str, float]:
@@ -67,10 +83,10 @@ def calculate_feature_importance(data: pd.DataFrame) -> dict[str, float]:
     help="Path to pipeline configuration file",
 )
 @click.option(
-    "--input",
+    "--data-dir",
     type=click.Path(exists=True, path_type=Path),
-    default="data/processed/train.csv",
-    help="Path to train dataset",
+    default="data/processed",
+    help="Directory with train/val/test datasets",
 )
 @click.option(
     "--output-dir",
@@ -78,13 +94,12 @@ def calculate_feature_importance(data: pd.DataFrame) -> dict[str, float]:
     default="data/features",
     help="Directory to save features",
 )
-def main(config: Path, input: Path, output_dir: Path) -> None:
+def main(config: Path, data_dir: Path, output_dir: Path) -> None:
     """Построить признаки для ML моделей.
 
-    На данном этапе это заглушка, которая:
-    - Копирует train.csv → train_features.csv
-    - Генерирует фиктивные feature_importance.json
-    - Генерирует feature_summary.json
+    Применяет StandardScaler:
+    - Fit на train set
+    - Transform на train/val/test sets
     """
     with stage_notification("Feature Engineering"):
         # Загрузить конфигурацию
@@ -92,25 +107,41 @@ def main(config: Path, input: Path, output_dir: Path) -> None:
         load_pipeline_config(config)  # Валидация конфигурации
 
         # Загрузить данные
-        notify_info(f"Loading data from {input}")
-        train = pd.read_csv(input)
-        notify_success(f"Loaded {len(train)} rows, {len(train.columns)} columns")
+        train_path = data_dir / "train.csv"
+        val_path = data_dir / "val.csv"
+        test_path = data_dir / "test.csv"
 
-        # Генерировать признаки
-        notify_info("Generating features...")
-        features = generate_features(train)
-        notify_success(f"Generated {len(features.columns)} features")
+        notify_info("Loading datasets...")
+        train = pd.read_csv(train_path)
+        val = pd.read_csv(val_path)
+        test = pd.read_csv(test_path)
+        notify_success(
+            f"Loaded train: {len(train)} rows, val: {len(val)} rows, test: {len(test)} rows"
+        )
+
+        # Применить feature scaling
+        notify_info("Applying StandardScaler (fit on train, transform all)...")
+        train_scaled, val_scaled, test_scaled, scaler = apply_feature_scaling(train, val, test)
+        notify_success("StandardScaler applied successfully")
 
         # Создать output директорию
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # Сохранить признаки
-        features_path = output_dir / "train_features.csv"
-        features.to_csv(features_path, index=False)
-        notify_success(f"Saved features: {features_path}")
+        train_features_path = output_dir / "train_features.csv"
+        val_features_path = output_dir / "val_features.csv"
+        test_features_path = output_dir / "test_features.csv"
+
+        train_scaled.to_csv(train_features_path, index=False)
+        val_scaled.to_csv(val_features_path, index=False)
+        test_scaled.to_csv(test_features_path, index=False)
+
+        notify_success(f"Saved train features: {train_features_path}")
+        notify_success(f"Saved val features: {val_features_path}")
+        notify_success(f"Saved test features: {test_features_path}")
 
         # Вычислить важность признаков
-        importance = calculate_feature_importance(features)
+        importance = calculate_feature_importance(train_scaled)
         importance_path = output_dir / "feature_importance.json"
         with importance_path.open("w") as f:
             json.dump(importance, f, indent=2)
@@ -118,10 +149,14 @@ def main(config: Path, input: Path, output_dir: Path) -> None:
 
         # Подготовить summary
         summary: dict[str, Any] = {
-            "total_features": len(features.columns),
-            "total_samples": len(features),
-            "feature_names": list(features.columns),
-            "target_column": "Survived" if "Survived" in features.columns else None,
+            "total_features": len(train_scaled.columns),
+            "train_samples": len(train_scaled),
+            "val_samples": len(val_scaled),
+            "test_samples": len(test_scaled),
+            "feature_names": list(train_scaled.columns),
+            "target_column": "Survived" if "Survived" in train_scaled.columns else None,
+            "scaler_mean": scaler.mean_.tolist(),
+            "scaler_scale": scaler.scale_.tolist(),
         }
 
         # Сохранить summary
@@ -133,7 +168,9 @@ def main(config: Path, input: Path, output_dir: Path) -> None:
         # Вывести summary
         display_summary = {
             "Total features": summary["total_features"],
-            "Total samples": summary["total_samples"],
+            "Train samples": summary["train_samples"],
+            "Val samples": summary["val_samples"],
+            "Test samples": summary["test_samples"],
             "Target column": summary["target_column"] or "None",
         }
         notify_metrics(display_summary, title="Feature Engineering Summary")

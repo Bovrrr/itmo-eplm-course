@@ -113,8 +113,8 @@ def generate_roc_curve_plot(y_test: pd.Series, y_pred_proba: np.ndarray) -> dict
 @click.option(
     "--test-data",
     type=click.Path(exists=True, path_type=Path),
-    default="data/processed/test.csv",
-    help="Path to test dataset",
+    default="data/features/test_features.csv",
+    help="Path to test dataset with features",
 )
 @click.option(
     "--output-dir",

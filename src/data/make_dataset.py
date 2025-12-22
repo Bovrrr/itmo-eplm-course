@@ -6,7 +6,6 @@ import click
 import pandas as pd
 import seaborn as sns
 from dotenv import find_dotenv, load_dotenv
-from sklearn.preprocessing import StandardScaler
 
 
 def load_titanic_dataset() -> pd.DataFrame:
@@ -84,13 +83,6 @@ def prepare_data(input_path: Path, output_path: Path) -> None:
     df = df.fillna(0)
 
     logger.info(f"Filled {missing_before} missing values")
-
-    # Apply StandardScaler to features (not target)
-    if "Survived" in df.columns:
-        feature_cols = [col for col in df.columns if col != "Survived"]
-        scaler = StandardScaler()
-        df[feature_cols] = scaler.fit_transform(df[feature_cols])
-        logger.info(f"Applied StandardScaler to {len(feature_cols)} features")
 
     # Reset index
     df = df.reset_index(drop=True)

@@ -39,7 +39,8 @@ console = Console()
 
 def run_single_experiment(
     config_name: str,
-    data_path: str,
+    train_data_path: str,
+    val_data_path: str,
     output_dir: Path,
     continue_on_error: bool = True,
 ) -> dict[str, Any]:
@@ -47,7 +48,8 @@ def run_single_experiment(
 
     Args:
         config_name: Имя конфигурации модели
-        data_path: Путь к файлу с данными
+        train_data_path: Путь к train данным с признаками
+        val_data_path: Путь к validation данным с признаками
         output_dir: Директория для сохранения модели
         continue_on_error: Продолжать ли при ошибке
 
@@ -63,7 +65,8 @@ def run_single_experiment(
     Example:
         >>> result = run_single_experiment(
         ...     "random_forest_medium",
-        ...     "data/processed/titanic_processed.csv",
+        ...     "data/features/train_features.csv",
+        ...     "data/features/val_features.csv",
         ...     Path("models/experiments"),
         ... )
         >>> print(result["status"])
@@ -79,7 +82,8 @@ def run_single_experiment(
     try:
         # Запустить обучение модели через train_model_pipeline
         metrics = train_model_pipeline(
-            data_path=data_path,
+            train_data_path=train_data_path,
+            val_data_path=val_data_path,
             model_output_path=str(model_path),
             config_name=config_name,
         )
@@ -269,9 +273,9 @@ def print_summary_table(summary: dict[str, Any], results: list[dict[str, Any]]) 
     help='Список моделей через запятую или "all" для всех',
 )
 @click.option(
-    "--data-path",
-    default="data/processed/titanic_processed.csv",
-    help="Путь к файлу с обработанными данными",
+    "--data-dir",
+    default="data/features",
+    help="Директория с train/val данными с признаками",
 )
 @click.option(
     "--output-dir",
@@ -283,7 +287,7 @@ def print_summary_table(summary: dict[str, Any], results: list[dict[str, Any]]) 
     default=True,
     help="Продолжать ли при ошибках",
 )
-def main(models: str, data_path: str, output_dir: str, continue_on_error: bool) -> None:
+def main(models: str, data_dir: str, output_dir: str, continue_on_error: bool) -> None:
     """Запустить массовые ML эксперименты.
 
     Этот скрипт автоматически запускает обучение моделей с различными
@@ -317,18 +321,26 @@ def main(models: str, data_path: str, output_dir: str, continue_on_error: bool) 
         sys.exit(1)
 
     # Проверить что данные существуют
-    data_file = Path(data_path)
-    if not data_file.exists():
-        console.print(f"[bold red]Ошибка: файл с данными не найден: {data_path}")
-        console.print("[yellow]Запустите: uv run dvc pull или dvc repro prepare")
+    data_dir_path = Path(data_dir)
+    train_file = data_dir_path / "train_features.csv"
+    val_file = data_dir_path / "val_features.csv"
+
+    if not train_file.exists() or not val_file.exists():
+        console.print(f"[bold red]Ошибка: файлы с данными не найдены в {data_dir}")
+        console.print("[yellow]Запустите: uv run dvc repro")
         sys.exit(1)
 
     # Создать выходную директорию
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
+    # Конструировать пути к train и val данным
+    train_data_path = str(train_file)
+    val_data_path = str(val_file)
+
     console.print(f"\n[cyan]Запуск {len(config_names)} экспериментов...")
-    console.print(f"[cyan]Данные: {data_path}")
+    console.print(f"[cyan]Train данные: {train_data_path}")
+    console.print(f"[cyan]Val данные: {val_data_path}")
     console.print(f"[cyan]Выходная директория: {output_dir}")
     console.print(f"[cyan]Continue on error: {continue_on_error}\n")
 
@@ -353,7 +365,8 @@ def main(models: str, data_path: str, output_dir: str, continue_on_error: bool) 
 
             result = run_single_experiment(
                 config_name=config_name,
-                data_path=data_path,
+                train_data_path=train_data_path,
+                val_data_path=val_data_path,
                 output_dir=output_path,
                 continue_on_error=continue_on_error,
             )

@@ -28,7 +28,6 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 
@@ -73,12 +72,18 @@ def create_model_from_config(config_name: str) -> Any:
     config_path = Path(f"configs/model/{config_name}.yaml")
     if config_path.exists():
         pydantic_config = load_model_config(config_path, validate=True)
-        config_dict = pydantic_config.model_dump()
-        model_class_name = config_dict["model_class"]
+        # Проверка типа для MyPy (load_model_config всегда возвращает BaseModel)
+        if isinstance(pydantic_config, dict):
+            # Fallback на старый способ
+            model_class_name = pydantic_config["model_class"]
+            params = pydantic_config["params"]
+        else:
+            config_dict = pydantic_config.model_dump()
+            model_class_name = config_dict["model_class"]
 
-        # Извлечь только параметры модели (убрать meta поля)
-        meta_fields = {"model_class", "description", "random_state"}
-        params = {k: v for k, v in config_dict.items() if k not in meta_fields}
+            # Извлечь только параметры модели (убрать meta поля)
+            meta_fields = {"model_class", "description", "random_state"}
+            params = {k: v for k, v in config_dict.items() if k not in meta_fields}
     else:
         # Fallback на старый способ
         config = get_model_config(config_name)
@@ -191,19 +196,19 @@ def plot_feature_importance(model: Any, feature_names: list[str], output_path: P
 @mlflow_run(experiment_name="titanic_classification")
 @log_time
 def train_model_pipeline(  # noqa: PLR0915
-    data_path: str,
+    train_data_path: str,
+    val_data_path: str,
     model_output_path: str,
     config_name: str = "random_forest_medium",
-    test_size: float = 0.2,
     random_state: int = 42,
 ) -> dict[str, float]:
     """Обучить ML модель с полным MLflow трекингом.
 
     Args:
-        data_path: Путь к обработанным данным (CSV).
+        train_data_path: Путь к train данным с признаками (CSV).
+        val_data_path: Путь к validation данным с признаками (CSV).
         model_output_path: Путь для сохранения обученной модели.
         config_name: Имя конфигурации модели из model_configs.
-        test_size: Размер тестовой выборки (default 0.2).
         random_state: Random state для воспроизводимости.
 
     Returns:
@@ -221,39 +226,47 @@ def train_model_pipeline(  # noqa: PLR0915
     logger.info(f"Training model: {config_name}")
     logger.info(f"Model class: {config['model_class']}")
 
-    # Загрузить данные
-    logger.info("Loading data for training")
-    df = pd.read_csv(data_path)
+    # Загрузить train данные
+    logger.info(f"Loading train data from {train_data_path}")
+    train_df = pd.read_csv(train_data_path)
 
-    # Подготовить признаки и целевую переменную
-    if "Survived" not in df.columns:
-        logger.warning("'Survived' column not found, using last column as target")
-        features = df.iloc[:, :-1]
-        target = df.iloc[:, -1]
+    # Загрузить validation данные
+    logger.info(f"Loading validation data from {val_data_path}")
+    val_df = pd.read_csv(val_data_path)
+
+    # Подготовить признаки и целевую переменную для train
+    if "Survived" not in train_df.columns:
+        logger.warning("'Survived' column not found in train, using last column as target")
+        x_train = train_df.iloc[:, :-1]
+        y_train = train_df.iloc[:, -1]
     else:
-        features = df.drop("Survived", axis=1)
-        target = df["Survived"]
+        x_train = train_df.drop("Survived", axis=1)
+        y_train = train_df["Survived"]
+
+    # Подготовить признаки и целевую переменную для validation
+    if "Survived" not in val_df.columns:
+        logger.warning("'Survived' column not found in val, using last column as target")
+        x_test = val_df.iloc[:, :-1]
+        y_test = val_df.iloc[:, -1]
+    else:
+        x_test = val_df.drop("Survived", axis=1)
+        y_test = val_df["Survived"]
 
     # Выбрать только числовые колонки
-    features = features.select_dtypes(include=["number"])
-    feature_names = list(features.columns)
+    x_train = x_train.select_dtypes(include=["number"])
+    x_test = x_test.select_dtypes(include=["number"])
+    feature_names = list(x_train.columns)
 
-    logger.info(f"Features shape: {features.shape}, Target shape: {target.shape}")
-
-    # Разделить на train/test
-    x_train, x_test, y_train, y_test = train_test_split(
-        features, target, test_size=test_size, random_state=random_state
-    )
-    logger.info(f"Train set: {x_train.shape}, Test set: {x_test.shape}")
+    logger.info(f"Train features shape: {x_train.shape}, Val features shape: {x_test.shape}")
+    logger.info(f"Train target shape: {y_train.shape}, Val target shape: {y_test.shape}")
 
     # Логировать параметры конфигурации
     mlflow.log_param("config_name", config_name)
     mlflow.log_param("model_type", config["model_class"])
-    mlflow.log_param("test_size", test_size)
     mlflow.log_param("random_state", random_state)
     mlflow.log_param("n_features", x_train.shape[1])
     mlflow.log_param("n_train_samples", x_train.shape[0])
-    mlflow.log_param("n_test_samples", x_test.shape[0])
+    mlflow.log_param("n_val_samples", x_test.shape[0])
 
     # Логировать все параметры модели
     for param_name, param_value in config["params"].items():
@@ -392,7 +405,8 @@ if __name__ == "__main__":
     try:
         setup_mlflow_tracking()
         metrics = train_model_pipeline(
-            data_path="data/processed/titanic_processed.csv",
+            train_data_path="data/features/train_features.csv",
+            val_data_path="data/features/val_features.csv",
             model_output_path="models/model.pkl",
             config_name=config_name,
         )

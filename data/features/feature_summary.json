@@ -1,6 +1,8 @@
 {
   "total_features": 6,
-  "total_samples": 529,
+  "train_samples": 529,
+  "val_samples": 114,
+  "test_samples": 114,
   "feature_names": [
     "age",
     "sibsp",
@@ -9,5 +11,19 @@
     "pclass",
     "Survived"
   ],
-  "target_column": "Survived"
+  "target_column": "Survived",
+  "scaler_mean": [
+    29.592778827977316,
+    0.5387523629489603,
+    0.40264650283553877,
+    34.63424688090737,
+    2.2419659735349717
+  ],
+  "scaler_scale": [
+    13.975214396204876,
+    1.0154343651945437,
+    0.7792637391979628,
+    46.523834860986256,
+    0.8575565977315428
+  ]
 }

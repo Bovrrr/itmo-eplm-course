@@ -5,34 +5,202 @@ stages:
     deps:
     - path: src/data/make_dataset.py
       hash: md5
-      md5: 6e8843cec80e1da728c94b13f1d1bb97
-      size: 3709
+      md5: 498bb42508053133e1349f3de7ade913
+      size: 4545
     outs:
     - path: data/processed/data_summary.json
       hash: md5
-      md5: fe4cb55d19ebb9d0684c9c501a68364e
-      size: 172
+      md5: dd61769be1e25d767493f735fdf69f4f
+      size: 212
     - path: data/processed/titanic_processed.csv
       hash: md5
-      md5: 74527ee58a377ae510ef6081b4000c1b
-      size: 3539
+      md5: 615ee6d789c4716e1f463c0a8f3973cd
+      size: 14496
   train:
-    cmd: uv run python src/models/train_model.py
+    cmd: uv run python src/models/train_model.py random_forest_medium
     deps:
-    - path: data/processed/titanic_processed.csv
+    - path: configs/model/random_forest_medium.yaml
       hash: md5
-      md5: 74527ee58a377ae510ef6081b4000c1b
-      size: 3539
+      md5: fec0522a7c342fe9899545b64157745c
+      size: 158
+    - path: data/features/train_features.csv
+      hash: md5
+      md5: 320ea68bcffc52323f24639858f4134c
+      size: 52561
+    - path: data/features/val_features.csv
+      hash: md5
+      md5: 4f94d0440a049b203056d99727aabc28
+      size: 11353
     - path: src/models/train_model.py
       hash: md5
-      md5: 64a77b4945b1101ab312ffa9f2612db3
-      size: 4892
+      md5: f5dbc1046bdd0afe31e47d2849191c43
+      size: 16109
     outs:
     - path: models/metrics.json
       hash: md5
-      md5: 827ead021c2b209bf44dcc8657c91ba3
-      size: 77
+      md5: 8e9cc2845b162483b937ce55d7a1107d
+      size: 244
     - path: models/model.pkl
       hash: md5
-      md5: bde82e1a7b10cdccef2079f75155bc13
-      size: 68009
+      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
+      size: 1328297
+  split:
+    cmd: uv run python -m src.data.split_dataset --config configs/pipeline.yaml
+    deps:
+    - path: configs/pipeline.yaml
+      hash: md5
+      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      size: 456
+    - path: data/processed/titanic_processed.csv
+      hash: md5
+      md5: 615ee6d789c4716e1f463c0a8f3973cd
+      size: 14496
+    - path: src/data/split_dataset.py
+      hash: md5
+      md5: 316480153858457d9bc52537c44e85c7
+      size: 6566
+    outs:
+    - path: data/processed/split_summary.json
+      hash: md5
+      md5: 5ee0455bf82f0b774a2db53dc1982d86
+      size: 422
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 09b2b3c2ca0de19c150d6c85bb869f88
+      size: 2232
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 24bdbafba0e09587d61e65d303fa16ae
+      size: 10122
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 6ad0d5c096a13bb5c0fe5d660446b622
+      size: 2216
+  feature_engineering:
+    cmd: uv run python -m src.features.build_features --config
+      configs/pipeline.yaml --data-dir data/processed
+    deps:
+    - path: configs/pipeline.yaml
+      hash: md5
+      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      size: 456
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 09b2b3c2ca0de19c150d6c85bb869f88
+      size: 2232
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 24bdbafba0e09587d61e65d303fa16ae
+      size: 10122
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 6ad0d5c096a13bb5c0fe5d660446b622
+      size: 2216
+    - path: src/features/build_features.py
+      hash: md5
+      md5: 3c581ae7bdc89b6404ba11651c510f94
+      size: 6618
+    outs:
+    - path: data/features/feature_summary.json
+      hash: md5
+      md5: 8ca68ba9cd206d3f3d8d66d016682f92
+      size: 516
+    - path: data/features/test_features.csv
+      hash: md5
+      md5: 4cb6415f58899a715ecb90ee188dfe9c
+      size: 11376
+    - path: data/features/train_features.csv
+      hash: md5
+      md5: 320ea68bcffc52323f24639858f4134c
+      size: 52561
+    - path: data/features/val_features.csv
+      hash: md5
+      md5: 4f94d0440a049b203056d99727aabc28
+      size: 11353
+  validate_data:
+    cmd: uv run python -m src.data.validate_dataset --config
+      configs/pipeline.yaml
+    deps:
+    - path: configs/pipeline.yaml
+      hash: md5
+      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      size: 456
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 09b2b3c2ca0de19c150d6c85bb869f88
+      size: 2232
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 24bdbafba0e09587d61e65d303fa16ae
+      size: 10122
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 6ad0d5c096a13bb5c0fe5d660446b622
+      size: 2216
+    - path: src/data/validate_dataset.py
+      hash: md5
+      md5: 09420771588d3ca720dd0bae664bb53f
+      size: 8206
+    outs:
+    - path: data/processed/validation_report.json
+      hash: md5
+      md5: 5a70bf249d66090db6b2b995f66de237
+      size: 2868
+  evaluate:
+    cmd: uv run python -m src.models.evaluate_model --config
+      configs/pipeline.yaml
+    deps:
+    - path: configs/pipeline.yaml
+      hash: md5
+      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      size: 456
+    - path: data/features/test_features.csv
+      hash: md5
+      md5: 4cb6415f58899a715ecb90ee188dfe9c
+      size: 11376
+    - path: models/model.pkl
+      hash: md5
+      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
+      size: 1328297
+    - path: src/models/evaluate_model.py
+      hash: md5
+      md5: fc0dfafb960aace92275f8f293a11e1c
+      size: 6680
+    outs:
+    - path: models/evaluation_metrics.json
+      hash: md5
+      md5: af80a79bf3123c8fd7f1bc6a1b264858
+      size: 157
+    - path: models/plots/confusion_matrix.json
+      hash: md5
+      md5: 89dfd6e79aa0903ab797ea8ba4bfa24f
+      size: 322
+    - path: models/plots/roc_curve.json
+      hash: md5
+      md5: 586c0f57358dbc4edb92185e39f89c42
+      size: 3775
+  validate_model:
+    cmd: uv run python -m src.models.validate_model --config
+      configs/pipeline.yaml
+    deps:
+    - path: configs/pipeline.yaml
+      hash: md5
+      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      size: 456
+    - path: models/evaluation_metrics.json
+      hash: md5
+      md5: af80a79bf3123c8fd7f1bc6a1b264858
+      size: 157
+    - path: models/model.pkl
+      hash: md5
+      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
+      size: 1328297
+    - path: src/models/validate_model.py
+      hash: md5
+      md5: 7f34b3f5b05a63dea9c911197f16d001
+      size: 4543
+    outs:
+    - path: models/model_validation_report.json
+      hash: md5
+      md5: 678edb6324655c32cee53a2856d832ad
+      size: 285

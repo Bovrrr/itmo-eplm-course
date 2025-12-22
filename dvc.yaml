@@ -31,13 +31,19 @@ stages:
 
   # STAGE 3: Feature engineering (новый - параллельно с validate_data)
   feature_engineering:
-    cmd: uv run python -m src.features.build_features --config configs/pipeline.yaml
+    cmd: uv run python -m src.features.build_features --config configs/pipeline.yaml --data-dir data/processed
     deps:
       - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
       - src/features/build_features.py
       - configs/pipeline.yaml
     outs:
       - data/features/train_features.csv:
+          cache: true
+      - data/features/val_features.csv:
+          cache: true
+      - data/features/test_features.csv:
           cache: true
     metrics:
       - data/features/feature_summary.json:
@@ -61,7 +67,7 @@ stages:
     cmd: uv run python src/models/train_model.py random_forest_medium
     deps:
       - data/features/train_features.csv
-      - data/processed/val.csv
+      - data/features/val_features.csv
       - src/models/train_model.py
       - configs/model/random_forest_medium.yaml
     outs:
@@ -76,7 +82,7 @@ stages:
     cmd: uv run python -m src.models.evaluate_model --config configs/pipeline.yaml
     deps:
       - models/model.pkl
-      - data/processed/test.csv
+      - data/features/test_features.csv
       - src/models/evaluate_model.py
       - configs/pipeline.yaml
     metrics:
