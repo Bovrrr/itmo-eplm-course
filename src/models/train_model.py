@@ -32,6 +32,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 
+from src.config.loader import load_model_config
 from src.mlflow_utils import log_time, mlflow_run
 from src.models.model_configs import get_model_config
 
@@ -46,6 +47,9 @@ def setup_mlflow_tracking() -> None:
 def create_model_from_config(config_name: str) -> Any:
     """Создать модель из конфигурации.
 
+    Сначала пытается загрузить через Pydantic (configs/model/*.yaml),
+    затем fallback на старый способ (model_configs.py).
+
     Args:
         config_name: Имя конфигурации модели.
 
@@ -55,10 +59,6 @@ def create_model_from_config(config_name: str) -> Any:
     Raises:
         ValueError: Если класс модели не поддерживается.
     """
-    config = get_model_config(config_name)
-    model_class_name = config["model_class"]
-    params = config["params"]
-
     # Маппинг имён классов на реальные классы
     model_classes = {
         "LogisticRegression": LogisticRegression,
@@ -68,6 +68,22 @@ def create_model_from_config(config_name: str) -> Any:
         "CatBoostClassifier": CatBoostClassifier,
         "KNeighborsClassifier": KNeighborsClassifier,
     }
+
+    # Попробовать загрузить через Pydantic
+    config_path = Path(f"configs/model/{config_name}.yaml")
+    if config_path.exists():
+        pydantic_config = load_model_config(config_path, validate=True)
+        config_dict = pydantic_config.model_dump()
+        model_class_name = config_dict["model_class"]
+
+        # Извлечь только параметры модели (убрать meta поля)
+        meta_fields = {"model_class", "description", "random_state"}
+        params = {k: v for k, v in config_dict.items() if k not in meta_fields}
+    else:
+        # Fallback на старый способ
+        config = get_model_config(config_name)
+        model_class_name = config["model_class"]
+        params = config["params"]
 
     if model_class_name not in model_classes:
         raise ValueError(
