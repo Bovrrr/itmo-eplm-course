@@ -258,7 +258,8 @@ tb_logs/
 .neptune/
 outputs/
 multirun/
-.dvc/
+.dvc/cache/
+.dvc/tmp/
 lightning_logs/
 
 # Hydra configuration
