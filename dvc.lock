@@ -33,24 +33,24 @@ stages:
       size: 11353
     - path: src/models/train_model.py
       hash: md5
-      md5: f5dbc1046bdd0afe31e47d2849191c43
-      size: 16109
+      md5: 73494b3ddc9a7836f33919c4135879ea
+      size: 16565
     outs:
     - path: models/metrics.json
       hash: md5
-      md5: 8e9cc2845b162483b937ce55d7a1107d
-      size: 244
+      md5: 16c5b639195c96a4c991fe4667580246
+      size: 230
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 7db1d79e426d03c4fbc44b76d66bb307
+      size: 1334857
   split:
     cmd: uv run python -m src.data.split_dataset --config configs/pipeline.yaml
     deps:
     - path: configs/pipeline.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
-      size: 456
+      md5: 4ade9009db5db9fbdd8f2feb89aca119
+      size: 645
     - path: data/processed/titanic_processed.csv
       hash: md5
       md5: 615ee6d789c4716e1f463c0a8f3973cd
@@ -82,8 +82,8 @@ stages:
     deps:
     - path: configs/pipeline.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
-      size: 456
+      md5: 4ade9009db5db9fbdd8f2feb89aca119
+      size: 645
     - path: data/processed/test.csv
       hash: md5
       md5: 09b2b3c2ca0de19c150d6c85bb869f88
@@ -123,8 +123,8 @@ stages:
     deps:
     - path: configs/pipeline.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
-      size: 456
+      md5: 4ade9009db5db9fbdd8f2feb89aca119
+      size: 645
     - path: data/processed/test.csv
       hash: md5
       md5: 09b2b3c2ca0de19c150d6c85bb869f88
@@ -152,16 +152,16 @@ stages:
     deps:
     - path: configs/pipeline.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
-      size: 456
+      md5: 4ade9009db5db9fbdd8f2feb89aca119
+      size: 645
     - path: data/features/test_features.csv
       hash: md5
       md5: 4cb6415f58899a715ecb90ee188dfe9c
       size: 11376
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 7db1d79e426d03c4fbc44b76d66bb307
+      size: 1334857
     - path: src/models/evaluate_model.py
       hash: md5
       md5: fc0dfafb960aace92275f8f293a11e1c
@@ -169,32 +169,32 @@ stages:
     outs:
     - path: models/evaluation_metrics.json
       hash: md5
-      md5: af80a79bf3123c8fd7f1bc6a1b264858
-      size: 157
+      md5: 6736e9a664f169088133861e09b67e7a
+      size: 170
     - path: models/plots/confusion_matrix.json
       hash: md5
-      md5: 89dfd6e79aa0903ab797ea8ba4bfa24f
+      md5: 9e29fe58cb8cdcee84d91e210268a1af
       size: 322
     - path: models/plots/roc_curve.json
       hash: md5
-      md5: 586c0f57358dbc4edb92185e39f89c42
-      size: 3775
+      md5: 59497fa7baf7937d9bb52889d4d6db9c
+      size: 3904
   validate_model:
     cmd: uv run python -m src.models.validate_model --config
       configs/pipeline.yaml
     deps:
     - path: configs/pipeline.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
-      size: 456
+      md5: 4ade9009db5db9fbdd8f2feb89aca119
+      size: 645
     - path: models/evaluation_metrics.json
       hash: md5
-      md5: af80a79bf3123c8fd7f1bc6a1b264858
-      size: 157
+      md5: 6736e9a664f169088133861e09b67e7a
+      size: 170
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 7db1d79e426d03c4fbc44b76d66bb307
+      size: 1334857
     - path: src/models/validate_model.py
       hash: md5
       md5: 7f34b3f5b05a63dea9c911197f16d001
@@ -202,5 +202,5 @@ stages:
     outs:
     - path: models/model_validation_report.json
       hash: md5
-      md5: 678edb6324655c32cee53a2856d832ad
-      size: 285
+      md5: f2689887d1b9262dc6b6d27f059fa7bb
+      size: 298

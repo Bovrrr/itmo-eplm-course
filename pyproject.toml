@@ -137,6 +137,8 @@ unfixable = []
 "__init__.py" = ["F401"]
 # Notebooks могут иметь более свободные правила
 "notebooks/**/*.py" = ["E402", "F401"]
+# ClearML pipeline - импорты внутри функций нужны для сериализации
+"src/pipelines/clearml_pipeline.py" = ["PLC0415"]
 
 [tool.ruff.format]
 # Использовать двойные кавычки

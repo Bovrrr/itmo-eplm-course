@@ -175,6 +175,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials (нужны для train stage)
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
     volumes:
       - ./data:/app/data
       - ./models:/app/models

@@ -43,7 +43,11 @@ LABEL version="0.1.0"
 # Установка минимальных системных зависимостей
 RUN apt-get update && apt-get install -y \
     libgomp1 \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Копирование UV из builder stage (нужен для DVC commands)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Создание непривилегированного пользователя
 RUN useradd -m -u 1000 -s /bin/bash mluser
