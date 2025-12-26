@@ -55,8 +55,9 @@ WORKDIR /app
 COPY --from=builder --chown=mluser:mluser /app/.venv /app/.venv
 COPY --from=builder --chown=mluser:mluser /app /app
 
-# Добавление .venv/bin в PATH
+# Добавление .venv/bin в PATH и PYTHONPATH
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app:$PYTHONPATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 

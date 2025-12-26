@@ -251,6 +251,7 @@ data/external/*
 # Experiment tracking and MLOps
 mlruns/
 .mlflow/
+.clearml.conf
 wandb/
 .wandb/
 tensorboard/

@@ -284,13 +284,15 @@ class PipelineConfig(BaseModel):
         data_split: Параметры разделения данных
         data_validation: Параметры валидации данных
         model_validation: Параметры валидации модели
-        mlflow_tracking_uri: URI для MLflow tracking
-        mlflow_experiment_name: Имя эксперимента в MLflow
+        clearml_project_name: Имя проекта в ClearML
+        mlflow_tracking_uri: URI для MLflow tracking (для обратной совместимости)
+        mlflow_experiment_name: Имя эксперимента в MLflow (для обратной совместимости)
     """
 
     data_split: DataSplitConfig = Field(default_factory=DataSplitConfig)
     data_validation: DataValidationConfig = Field(default_factory=DataValidationConfig)
     model_validation: ModelValidationConfig = Field(default_factory=ModelValidationConfig)
+    clearml_project_name: str = Field(default="titanic_classification")
     mlflow_tracking_uri: str = Field(default="file:./mlruns")
     mlflow_experiment_name: str = Field(default="titanic_classification")
 

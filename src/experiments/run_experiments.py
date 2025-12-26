@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import click
-import mlflow
+from clearml import Task
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
@@ -59,7 +59,7 @@ def run_single_experiment(
         - status: "success" или "failed"
         - metrics: метрики модели (если успешно)
         - error: описание ошибки (если failed)
-        - run_id: MLflow run ID (если успешно)
+        - task_id: ClearML Task ID (если успешно)
         - execution_time: время выполнения в секундах
 
     Example:
@@ -81,6 +81,7 @@ def run_single_experiment(
 
     try:
         # Запустить обучение модели через train_model_pipeline
+        # train_model_pipeline уже создаёт свой ClearML Task через декоратор
         metrics = train_model_pipeline(
             train_data_path=train_data_path,
             val_data_path=val_data_path,
@@ -88,11 +89,11 @@ def run_single_experiment(
             config_name=config_name,
         )
 
-        # Получить run_id из активного run (если есть)
-        run_id = None
-        active_run = mlflow.active_run()
-        if active_run:
-            run_id = active_run.info.run_id
+        # Получить task_id из текущего task (если есть)
+        task_id = None
+        current_task = Task.current_task()
+        if current_task:
+            task_id = current_task.id
 
         execution_time = time.time() - start_time
 
@@ -100,7 +101,7 @@ def run_single_experiment(
             "config_name": config_name,
             "status": "success",
             "metrics": metrics,
-            "run_id": run_id,
+            "task_id": task_id,
             "execution_time": execution_time,
         }
 
@@ -176,7 +177,7 @@ def generate_summary_report(results: list[dict[str, Any]]) -> dict[str, Any]:
         "best_model": {
             "config_name": best_model["config_name"],
             "accuracy": best_model["metrics"].get("accuracy"),
-            "run_id": best_model.get("run_id"),
+            "task_id": best_model.get("task_id"),
         }
         if best_model
         else None,
@@ -291,7 +292,7 @@ def main(models: str, data_dir: str, output_dir: str, continue_on_error: bool) -
     """Запустить массовые ML эксперименты.
 
     Этот скрипт автоматически запускает обучение моделей с различными
-    конфигурациями, логирует результаты в MLflow и создаёт сводный отчёт.
+    конфигурациями, логирует результаты в ClearML и создаёт сводный отчёт.
 
     Примеры использования:
 
@@ -402,7 +403,7 @@ def main(models: str, data_dir: str, output_dir: str, continue_on_error: bool) -
     console.print(
         "  1. Проанализировать результаты: uv run python src/experiments/analyze_experiments.py"
     )
-    console.print("  2. Просмотреть MLflow UI: mlflow ui --port 5000")
+    console.print("  2. Просмотреть ClearML UI: https://app.clear.ml")
 
 
 if __name__ == "__main__":

@@ -19,5 +19,9 @@ model_validation:
   min_f1_score: 0.5
   max_overfitting_gap: 0.1
 
+# ClearML settings (основной трекер)
+clearml_project_name: "titanic_classification"
+
+# MLflow settings (оставлено для обратной совместимости)
 mlflow_tracking_uri: "file:./mlruns"
 mlflow_experiment_name: "titanic_classification"

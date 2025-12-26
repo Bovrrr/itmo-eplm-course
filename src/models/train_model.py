@@ -1,4 +1,4 @@
-"""Модуль для обучения ML моделей с расширенным MLflow трекингом."""
+"""Модуль для обучения ML моделей с расширенным ClearML трекингом."""
 
 import json
 import logging
@@ -10,12 +10,11 @@ from typing import Any
 
 import joblib
 import matplotlib.pyplot as plt
-import mlflow
-import mlflow.sklearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from catboost import CatBoostClassifier
+from clearml import Task
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -31,16 +30,16 @@ from sklearn.metrics import (
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 
+from src.clearml_utils import (
+    clearml_task,
+    log_artifact,
+    log_metrics,
+    log_time,
+    register_model,
+    set_tags,
+)
 from src.config.loader import load_model_config
-from src.mlflow_utils import log_time, mlflow_run
 from src.models.model_configs import get_model_config
-
-
-def setup_mlflow_tracking() -> None:
-    """Настройка MLflow tracking с локальным файловым бэкендом."""
-    tracking_uri = f"file:{Path.cwd()}/mlruns"
-    mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment("titanic_classification")
 
 
 def create_model_from_config(config_name: str) -> Any:
@@ -99,17 +98,20 @@ def create_model_from_config(config_name: str) -> Any:
     return model_class(**params)
 
 
-def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, output_path: Path) -> None:
+def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, output_path: Path) -> plt.Figure:
     """Создать и сохранить confusion matrix.
 
     Args:
         y_true: Истинные метки.
         y_pred: Предсказанные метки.
         output_path: Путь для сохранения изображения.
+
+    Returns:
+        Matplotlib Figure объект.
     """
     cm = confusion_matrix(y_true, y_pred)
 
-    plt.figure(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
     sns.heatmap(
         cm,
         annot=True,
@@ -119,18 +121,22 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, output_path: P
         square=True,
         xticklabels=["Class 0", "Class 1"],
         yticklabels=["Class 0", "Class 1"],
+        ax=ax,
     )
-    plt.title("Confusion Matrix", fontsize=14, fontweight="bold")
-    plt.ylabel("True Label", fontsize=12)
-    plt.xlabel("Predicted Label", fontsize=12)
+    ax.set_title("Confusion Matrix", fontsize=14, fontweight="bold")
+    ax.set_ylabel("True Label", fontsize=12)
+    ax.set_xlabel("Predicted Label", fontsize=12)
     plt.tight_layout()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+
+    return fig
 
 
-def plot_roc_curve_fig(y_true: np.ndarray, y_proba: np.ndarray, output_path: Path) -> float:
+def plot_roc_curve_fig(
+    y_true: np.ndarray, y_proba: np.ndarray, output_path: Path
+) -> tuple[plt.Figure, float]:
     """Создать и сохранить ROC curve.
 
     Args:
@@ -139,70 +145,74 @@ def plot_roc_curve_fig(y_true: np.ndarray, y_proba: np.ndarray, output_path: Pat
         output_path: Путь для сохранения изображения.
 
     Returns:
-        ROC AUC score.
+        Tuple (Figure, ROC AUC score).
     """
     fpr, tpr, _ = roc_curve(y_true, y_proba)
     roc_auc = roc_auc_score(y_true, y_proba)
 
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, color="darkorange", lw=2, label=f"ROC curve (AUC = {roc_auc:.3f})")
-    plt.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--", label="Random")
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel("False Positive Rate", fontsize=12)
-    plt.ylabel("True Positive Rate", fontsize=12)
-    plt.title("Receiver Operating Characteristic (ROC) Curve", fontsize=14, fontweight="bold")
-    plt.legend(loc="lower right", fontsize=10)
-    plt.grid(alpha=0.3)
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.plot(fpr, tpr, color="darkorange", lw=2, label=f"ROC curve (AUC = {roc_auc:.3f})")
+    ax.plot([0, 1], [0, 1], color="navy", lw=2, linestyle="--", label="Random")
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.set_xlabel("False Positive Rate", fontsize=12)
+    ax.set_ylabel("True Positive Rate", fontsize=12)
+    ax.set_title("Receiver Operating Characteristic (ROC) Curve", fontsize=14, fontweight="bold")
+    ax.legend(loc="lower right", fontsize=10)
+    ax.grid(alpha=0.3)
     plt.tight_layout()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
 
-    return float(roc_auc)
+    return fig, float(roc_auc)
 
 
-def plot_feature_importance(model: Any, feature_names: list[str], output_path: Path) -> None:
+def plot_feature_importance(
+    model: Any, feature_names: list[str], output_path: Path
+) -> plt.Figure | None:
     """Создать и сохранить график feature importance.
 
     Args:
         model: Обученная модель с атрибутом feature_importances_.
         feature_names: Названия признаков.
         output_path: Путь для сохранения изображения.
+
+    Returns:
+        Matplotlib Figure объект или None.
     """
     if not hasattr(model, "feature_importances_"):
-        return
+        return None
 
     importances = model.feature_importances_
     indices = np.argsort(importances)[::-1]
 
-    plt.figure(figsize=(10, 6))
-    plt.title("Feature Importances", fontsize=14, fontweight="bold")
-    plt.bar(range(len(importances)), importances[indices], align="center")
-    plt.xticks(
-        range(len(importances)), [feature_names[i] for i in indices], rotation=45, ha="right"
-    )
-    plt.xlabel("Features", fontsize=12)
-    plt.ylabel("Importance", fontsize=12)
-    plt.grid(axis="y", alpha=0.3)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.set_title("Feature Importances", fontsize=14, fontweight="bold")
+    ax.bar(range(len(importances)), importances[indices], align="center")
+    ax.set_xticks(range(len(importances)))
+    ax.set_xticklabels([feature_names[i] for i in indices], rotation=45, ha="right")
+    ax.set_xlabel("Features", fontsize=12)
+    ax.set_ylabel("Importance", fontsize=12)
+    ax.grid(axis="y", alpha=0.3)
     plt.tight_layout()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close()
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+
+    return fig
 
 
-@mlflow_run(experiment_name="titanic_classification")
+@clearml_task(project_name="titanic_classification", task_type="training")
 @log_time
-def train_model_pipeline(  # noqa: PLR0915
+def train_model_pipeline(  # noqa: PLR0912
     train_data_path: str,
     val_data_path: str,
     model_output_path: str,
     config_name: str = "random_forest_medium",
     random_state: int = 42,
 ) -> dict[str, float]:
-    """Обучить ML модель с полным MLflow трекингом.
+    """Обучить ML модель с полным ClearML трекингом.
 
     Args:
         train_data_path: Путь к train данным с признаками (CSV).
@@ -215,13 +225,15 @@ def train_model_pipeline(  # noqa: PLR0915
         Словарь с метриками модели.
     """
     logger = logging.getLogger(__name__)
+    task = Task.current_task()
 
-    # Установить имя run в MLflow
+    # Получить конфигурацию модели
     config = get_model_config(config_name)
-    mlflow.set_tag("mlflow.runName", config_name)  # Установить название run для UI
-    mlflow.set_tag("config_name", config_name)
-    mlflow.set_tag("model_class", config["model_class"])
-    mlflow.set_tag("description", config.get("description", ""))
+
+    # Установить имя задачи и теги
+    if task:
+        task.set_name(config_name)
+        set_tags([config_name, config["model_class"]])
 
     logger.info(f"Training model: {config_name}")
     logger.info(f"Model class: {config['model_class']}")
@@ -260,17 +272,21 @@ def train_model_pipeline(  # noqa: PLR0915
     logger.info(f"Train features shape: {x_train.shape}, Val features shape: {x_test.shape}")
     logger.info(f"Train target shape: {y_train.shape}, Val target shape: {y_test.shape}")
 
-    # Логировать параметры конфигурации
-    mlflow.log_param("config_name", config_name)
-    mlflow.log_param("model_type", config["model_class"])
-    mlflow.log_param("random_state", random_state)
-    mlflow.log_param("n_features", x_train.shape[1])
-    mlflow.log_param("n_train_samples", x_train.shape[0])
-    mlflow.log_param("n_val_samples", x_test.shape[0])
+    # Логировать гиперпараметры через ClearML connect
+    if task:
+        hyperparams = {
+            "config_name": config_name,
+            "model_type": config["model_class"],
+            "random_state": random_state,
+            "n_features": x_train.shape[1],
+            "n_train_samples": x_train.shape[0],
+            "n_val_samples": x_test.shape[0],
+        }
+        # Добавить параметры модели
+        for param_name, param_value in config["params"].items():
+            hyperparams[f"model_{param_name}"] = param_value
 
-    # Логировать все параметры модели
-    for param_name, param_value in config["params"].items():
-        mlflow.log_param(f"model_{param_name}", param_value)
+        task.connect(hyperparams, name="hyperparameters")
 
     # Создать и обучить модель
     logger.info(f"Creating model from config: {config_name}")
@@ -281,9 +297,6 @@ def train_model_pipeline(  # noqa: PLR0915
     model.fit(x_train, y_train)
     train_time = time.time() - train_start
     logger.info(f"Model trained in {train_time:.2f}s")
-
-    # Логировать время обучения
-    mlflow.log_metric("train_time_seconds", train_time)
 
     # Генерировать предсказания
     y_pred = model.predict(x_test)
@@ -298,11 +311,15 @@ def train_model_pipeline(  # noqa: PLR0915
         f"Accuracy: {accuracy:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}"
     )
 
-    # Логировать основные метрики
-    mlflow.log_metric("accuracy", accuracy)
-    mlflow.log_metric("precision", precision)
-    mlflow.log_metric("recall", recall)
-    mlflow.log_metric("f1_score", f1)
+    # Логировать метрики через ClearML
+    metrics_dict = {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1,
+        "train_time_seconds": train_time,
+    }
+    log_metrics(metrics_dict, title="Metrics")
 
     # Создать временную директорию для артефактов
     artifacts_dir = Path(model_output_path).parent / "artifacts_tmp"
@@ -310,18 +327,33 @@ def train_model_pipeline(  # noqa: PLR0915
 
     # 1. Confusion Matrix
     cm_path = artifacts_dir / "confusion_matrix.png"
-    plot_confusion_matrix(y_test.values, y_pred, cm_path)
-    mlflow.log_artifact(str(cm_path))
+    cm_fig = plot_confusion_matrix(y_test.values, y_pred, cm_path)
+    if task:
+        task.get_logger().report_matplotlib_figure(
+            title="Confusion Matrix",
+            series="confusion_matrix",
+            figure=cm_fig,
+            iteration=0,
+        )
+    plt.close(cm_fig)
     logger.info("Confusion matrix logged")
 
     # 2. ROC Curve (если модель поддерживает predict_proba)
+    roc_auc = None
     if hasattr(model, "predict_proba"):
         try:
             y_proba = model.predict_proba(x_test)[:, 1]
             roc_path = artifacts_dir / "roc_curve.png"
-            roc_auc = plot_roc_curve_fig(y_test.values, y_proba, roc_path)
-            mlflow.log_artifact(str(roc_path))
-            mlflow.log_metric("roc_auc", roc_auc)
+            roc_fig, roc_auc = plot_roc_curve_fig(y_test.values, y_proba, roc_path)
+            if task:
+                task.get_logger().report_matplotlib_figure(
+                    title="ROC Curve",
+                    series="roc_curve",
+                    figure=roc_fig,
+                    iteration=0,
+                )
+            plt.close(roc_fig)
+            log_metrics({"roc_auc": roc_auc}, title="Metrics")
             logger.info(f"ROC curve logged (AUC: {roc_auc:.4f})")
         except Exception as e:
             logger.warning(f"Could not compute ROC curve: {e}")
@@ -329,8 +361,15 @@ def train_model_pipeline(  # noqa: PLR0915
     # 3. Feature Importance (для tree-based моделей)
     if hasattr(model, "feature_importances_"):
         fi_path = artifacts_dir / "feature_importance.png"
-        plot_feature_importance(model, feature_names, fi_path)
-        mlflow.log_artifact(str(fi_path))
+        fi_fig = plot_feature_importance(model, feature_names, fi_path)
+        if fi_fig and task:
+            task.get_logger().report_matplotlib_figure(
+                title="Feature Importance",
+                series="feature_importance",
+                figure=fi_fig,
+                iteration=0,
+            )
+            plt.close(fi_fig)
         logger.info("Feature importance logged")
 
     # 4. Classification Report
@@ -338,29 +377,25 @@ def train_model_pipeline(  # noqa: PLR0915
     clf_report_path = artifacts_dir / "classification_report.json"
     with open(clf_report_path, "w") as f:
         json.dump(clf_report, f, indent=2)
-    mlflow.log_artifact(str(clf_report_path))
+    log_artifact(clf_report_path, name="classification_report")
     logger.info("Classification report logged")
 
     # 5. Логировать размер модели
     model_temp_path = artifacts_dir / "model_temp.pkl"
     joblib.dump(model, model_temp_path)
     model_size_bytes = model_temp_path.stat().st_size
-    mlflow.log_metric("model_size_bytes", model_size_bytes)
+    log_metrics({"model_size_bytes": float(model_size_bytes)}, title="Model Info")
     logger.info(f"Model size: {model_size_bytes / 1024:.2f} KB")
 
-    # Логировать модель в MLflow
-    mlflow.sklearn.log_model(
-        model,
-        "model",
-        registered_model_name="titanic_classifier",
-    )
-    logger.info("Model logged to MLflow")
-
-    # Сохранить модель на диск
+    # Сохранить модель на диск и зарегистрировать в ClearML
     model_output_path_obj = Path(model_output_path)
-    model_output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, model_output_path_obj)
-    logger.info(f"Model saved to {model_output_path_obj}")
+    register_model(
+        model=model,
+        model_path=model_output_path_obj,
+        model_name=f"titanic_{config_name}",
+        tags=[config_name, config["model_class"]],
+    )
+    logger.info(f"Model saved and registered: {model_output_path_obj}")
 
     # Сохранить метрики
     metrics = {
@@ -373,20 +408,14 @@ def train_model_pipeline(  # noqa: PLR0915
     }
 
     # Добавить ROC AUC если есть
-    if hasattr(model, "predict_proba"):
-        try:
-            y_proba = model.predict_proba(x_test)[:, 1]
-            metrics["roc_auc"] = float(roc_auc_score(y_test, y_proba))
-        except Exception:
-            pass
+    if roc_auc is not None:
+        metrics["roc_auc"] = float(roc_auc)
 
     metrics_path = model_output_path_obj.parent / "metrics.json"
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
+    log_artifact(metrics_path, name="metrics")
     logger.info(f"Metrics saved to {metrics_path}")
-
-    # Логировать metrics.json как артефакт
-    mlflow.log_artifact(str(metrics_path))
 
     # Очистить временную директорию с артефактами
     shutil.rmtree(artifacts_dir, ignore_errors=True)
@@ -403,7 +432,6 @@ if __name__ == "__main__":
     config_name = sys.argv[1] if len(sys.argv) > 1 else "random_forest_medium"
 
     try:
-        setup_mlflow_tracking()
         metrics = train_model_pipeline(
             train_data_path="data/features/train_features.csv",
             val_data_path="data/features/val_features.csv",

@@ -1,6 +1,13 @@
 # =============================================================================
 # Docker Compose для ITMO EPLM Course
 # =============================================================================
+#
+# Использование ClearML:
+#   1. Создать .env файл на основе .env.example
+#   2. Запустить эксперименты: docker-compose run --rm experiments
+#   3. Запустить pipeline: docker-compose run --rm pipeline
+#   4. Посмотреть результаты на https://app.clear.ml
+#
 
 services:
   # ---------------------------------------------------------------------------
@@ -16,11 +23,18 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
     volumes:
       # Монтирование данных и моделей для персистентности
       - ./data:/app/data
       - ./models:/app/models
       - ./notebooks:/app/notebooks
+      - ./configs:/app/configs
     networks:
       - ml-network
     command: python main.py
@@ -41,12 +55,19 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - JUPYTER_ENABLE_LAB=yes
+      # ClearML credentials
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
     volumes:
       # Монтирование для работы с ноутбуками
       - ./notebooks:/app/notebooks
       - ./data:/app/data
       - ./models:/app/models
       - ./src:/app/src
+      - ./configs:/app/configs
     networks:
       - ml-network
     command: >
@@ -60,31 +81,137 @@ services:
       --notebook-dir=/app/notebooks
 
   # ---------------------------------------------------------------------------
-  # MLflow UI сервер для отслеживания экспериментов
+  # Запуск всех экспериментов (18 конфигураций моделей)
   # ---------------------------------------------------------------------------
-  mlflow:
+  experiments:
     build:
       context: .
       dockerfile: Dockerfile
     image: itmo-eplm-course:latest
-    container_name: itmo-eplm-mlflow
-    restart: unless-stopped
-    ports:
-      - "5000:5000"
+    container_name: itmo-eplm-experiments
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials (обязательно!)
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./configs:/app/configs
+      - ./src:/app/src
+    networks:
+      - ml-network
+    command: python -m src.experiments.run_experiments --models all
+
+  # ---------------------------------------------------------------------------
+  # ClearML Pipeline runner
+  # ---------------------------------------------------------------------------
+  pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-pipeline
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials (обязательно!)
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./configs:/app/configs
+      - ./src:/app/src
+    networks:
+      - ml-network
+    command: python -m src.pipelines.clearml_pipeline --local
+
+  # ---------------------------------------------------------------------------
+  # Обучение одной модели (можно указать конфигурацию)
+  # Пример: docker-compose run --rm train random_forest_large
+  # ---------------------------------------------------------------------------
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-train
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./configs:/app/configs
+      - ./src:/app/src
+    networks:
+      - ml-network
+    entrypoint: ["python", "src/models/train_model.py"]
+    command: ["random_forest_medium"]
+
+  # ---------------------------------------------------------------------------
+  # DVC Pipeline (подготовка данных через DVC)
+  # ---------------------------------------------------------------------------
+  dvc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-dvc
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
-      # Монтирование для хранения экспериментов
-      - ./mlruns:/app/mlruns
+      - ./data:/app/data
       - ./models:/app/models
+      - ./configs:/app/configs
+      - ./src:/app/src
+      - ./.dvc:/app/.dvc
+      - ./.git:/app/.git:ro
+      - ./dvc.yaml:/app/dvc.yaml:ro
+      - ./dvc.lock:/app/dvc.lock
     networks:
       - ml-network
-    command: >
-      mlflow ui
-      --host 0.0.0.0
-      --port 5000
-      --backend-store-uri file:/app/mlruns
+    command: dvc repro
+
+  # ---------------------------------------------------------------------------
+  # Model Registry CLI
+  # ---------------------------------------------------------------------------
+  registry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: itmo-eplm-course:latest
+    container_name: itmo-eplm-registry
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # ClearML credentials
+      - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+      - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+      - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+      - CLEARML_WEB_HOST=${CLEARML_WEB_HOST:-https://app.clear.ml}
+      - CLEARML_FILES_HOST=${CLEARML_FILES_HOST:-https://files.clear.ml}
+    volumes:
+      - ./src:/app/src
+    networks:
+      - ml-network
+    entrypoint: ["python", "-m", "src.models.model_registry"]
+    command: ["list-models"]
 
 # -----------------------------------------------------------------------------
 # Networks

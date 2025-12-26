@@ -2119,6 +2119,512 @@ dvc.yaml                            # Расширен до 7 stages
 
 ---
 
+---
+
+## 9. ДЗ 5: ClearML для MLOps
+
+### Обзор
+
+**Цель:** Интегрировать ClearML для трекинга экспериментов, управления моделями и автоматизации ML пайплайнов.
+
+**Выбранные инструменты:**
+- **ClearML** - альтернатива MLflow для трекинга экспериментов
+- **ClearML Pipelines** - оркестрация ML пайплайнов
+- **ClearML Model Registry** - управление версиями моделей
+- **Docker** - контейнеризация для воспроизводимости
+
+**Выполнено:**
+- Создан модуль `src/clearml_utils/` с декораторами и утилитами
+- Модифицирован `train_model.py` для использования ClearML вместо MLflow
+- Реализован ClearML Pipeline с 7 stages
+- Добавлен CLI для работы с Model Registry
+- Обновлён docker-compose.yml для запуска в контейнерах
+
+### 9.1 Настройка ClearML (3 балла)
+
+#### Установка зависимости
+
+```bash
+# В pyproject.toml
+"clearml>=1.14.0"
+
+# Установка
+uv sync
+```
+
+**Установленная версия:** clearml 2.1.0
+
+#### Создание credentials
+
+1. Регистрация на https://app.clear.ml
+2. Settings → Workspace → Create new credentials
+3. Создание `.env` файла с ключами
+
+**Файл .env.example:**
+```bash
+CLEARML_API_HOST=https://api.clear.ml
+CLEARML_WEB_HOST=https://app.clear.ml
+CLEARML_FILES_HOST=https://files.clear.ml
+CLEARML_API_ACCESS_KEY=your_access_key_here
+CLEARML_API_SECRET_KEY=your_secret_key_here
+```
+
+#### Модуль clearml_utils
+
+**Структура:**
+```
+src/clearml_utils/
+├── __init__.py           # Экспорт публичного API
+├── decorators.py         # @clearml_task, @log_time
+├── task_utils.py         # log_metrics, log_artifact, set_tags
+└── model_utils.py        # register_model, load_model, get_best_model
+```
+
+**Декораторы (decorators.py):**
+```python
+@clearml_task(project_name="titanic_classification", task_type="training")
+@log_time
+def train_model_pipeline(...):
+    # Автоматическое создание ClearML Task
+    # Логирование времени выполнения
+```
+
+**Утилиты для логирования (task_utils.py):**
+- `log_hyperparams()` - логирование гиперпараметров
+- `log_metrics()` - логирование метрик
+- `log_artifact()` - загрузка артефактов
+- `log_plot()` - логирование matplotlib графиков
+- `set_tags()` - установка тегов
+
+**Утилиты для моделей (model_utils.py):**
+- `register_model()` - регистрация модели в Model Registry
+- `load_model()` - загрузка модели из Registry
+- `get_best_model()` - поиск лучшей модели по метрике
+
+**Статус:** Модуль clearml_utils создан
+
+### 9.2 Трекинг экспериментов (3 балла)
+
+#### Модификация train_model.py
+
+**Изменения:**
+- Заменены импорты MLflow на ClearML
+- Декоратор `@mlflow_run` заменён на `@clearml_task`
+- Логирование метрик через `log_metrics()`
+- Регистрация модели через `register_model()`
+- Графики автоматически захватываются ClearML
+
+**Пример кода:**
+```python
+from src.clearml_utils import (
+    clearml_task,
+    log_artifact,
+    log_metrics,
+    log_time,
+    register_model,
+)
+
+@clearml_task(project_name="titanic_classification", task_type="training")
+@log_time
+def train_model_pipeline(
+    train_data_path: str,
+    val_data_path: str,
+    model_output_path: str,
+    config_name: str = "random_forest_medium",
+    random_state: int = 42,
+) -> dict[str, float]:
+    # Логирование гиперпараметров
+    task = Task.current_task()
+    task.connect(hyperparams, name="hyperparameters")
+
+    # Обучение модели
+    model.fit(x_train, y_train)
+
+    # Логирование метрик
+    log_metrics({"accuracy": accuracy, "f1_score": f1})
+
+    # Регистрация модели
+    register_model(model, model_path, model_name=f"titanic_{config_name}")
+```
+
+#### Логируемая информация
+
+**Гиперпараметры:**
+- config_name
+- model_type
+- random_state
+- n_features, n_train_samples, n_val_samples
+- Все параметры модели из конфигурации
+
+**Метрики:**
+- accuracy, precision, recall, f1_score
+- roc_auc (если модель поддерживает predict_proba)
+- train_time_seconds
+- model_size_bytes
+
+**Артефакты:**
+- confusion_matrix.png
+- roc_curve.png
+- feature_importance.png (для tree-based моделей)
+- classification_report.json
+- metrics.json
+
+**Графики:**
+- Confusion Matrix (matplotlib figure)
+- ROC Curve (matplotlib figure)
+- Feature Importance (matplotlib figure)
+
+**Статус:** Трекинг экспериментов реализован
+
+### 9.3 Управление моделями (3 балла)
+
+#### Model Registry CLI
+
+**Файл:** `src/models/model_registry.py`
+
+**Команды:**
+```bash
+# Список всех моделей
+uv run python -m src.models.model_registry list-models
+
+# Найти лучшую модель по метрике
+uv run python -m src.models.model_registry best-model --metric accuracy
+
+# Сравнение моделей
+uv run python -m src.models.model_registry compare-models
+
+# Информация о модели
+uv run python -m src.models.model_registry model-info <model_id>
+
+# Список задач
+uv run python -m src.models.model_registry list-tasks
+```
+
+#### Регистрация моделей
+
+При обучении модели автоматически:
+1. Сохраняется на диск (`models/model.pkl`)
+2. Регистрируется в ClearML Model Registry
+3. Добавляются теги (config_name, model_class)
+
+**Код регистрации:**
+```python
+register_model(
+    model=model,
+    model_path="models/model.pkl",
+    model_name=f"titanic_{config_name}",
+    tags=[config_name, config["model_class"]],
+)
+```
+
+#### Загрузка моделей
+
+```python
+from src.clearml_utils import load_model
+
+# По ID модели
+model = load_model(model_id="abc123")
+
+# По имени
+model = load_model(
+    model_name="titanic_random_forest_medium",
+    project_name="titanic_classification"
+)
+```
+
+**Статус:** Model Registry реализован
+
+### 9.4 ClearML Pipelines (2 балла)
+
+#### Архитектура Pipeline
+
+**Файл:** `src/pipelines/clearml_pipeline.py`
+
+**7 Stages:**
+```
+prepare_data
+    ↓
+split_data
+    ↓
+    ├── feature_engineering (параллельно)
+    └── validate_data       (параллельно)
+         ↓
+    train_model
+         ↓
+    evaluate_model
+         ↓
+    validate_model
+```
+
+**Параллельное выполнение:**
+- `feature_engineering` и `validate_data` выполняются одновременно
+- Зависят только от `split_data`
+- `train_model` ждёт завершения обоих
+
+#### Реализация
+
+```python
+from clearml import PipelineController
+
+pipe = PipelineController(
+    name="Titanic ML Pipeline",
+    project="titanic_classification",
+    version="1.0",
+)
+
+# Stage 1: Prepare Data
+pipe.add_function_step(
+    name="prepare_data",
+    function=step_prepare_data,
+    function_return=["prepare_result"],
+)
+
+# Stage 5: Train Model (зависит от двух stages)
+pipe.add_function_step(
+    name="train_model",
+    function=step_train_model,
+    parents=["feature_engineering", "validate_data"],
+)
+```
+
+#### Запуск Pipeline
+
+```bash
+# Локальный запуск (рекомендуется для тестирования)
+uv run python -m src.pipelines.clearml_pipeline --local
+
+# Запуск через ClearML Agent (требует настройки агента)
+uv run python -m src.pipelines.clearml_pipeline --remote --queue default
+```
+
+**Статус:** ClearML Pipeline реализован
+
+### 9.5 Docker-интеграция
+
+#### Обновлённый docker-compose.yml
+
+**Новые сервисы:**
+
+1. **experiments** - запуск всех 18 экспериментов
+   ```bash
+   docker-compose run --rm experiments
+   ```
+
+2. **pipeline** - запуск ClearML Pipeline
+   ```bash
+   docker-compose run --rm pipeline
+   ```
+
+3. **train** - обучение одной модели
+   ```bash
+   docker-compose run --rm train random_forest_large
+   ```
+
+4. **dvc** - подготовка данных через DVC
+   ```bash
+   docker-compose run --rm dvc
+   ```
+
+5. **registry** - Model Registry CLI
+   ```bash
+   docker-compose run --rm registry list-models
+   ```
+
+**ClearML credentials:**
+```yaml
+environment:
+  - CLEARML_API_ACCESS_KEY=${CLEARML_API_ACCESS_KEY}
+  - CLEARML_API_SECRET_KEY=${CLEARML_API_SECRET_KEY}
+  - CLEARML_API_HOST=${CLEARML_API_HOST:-https://api.clear.ml}
+```
+
+#### Инструкция для проверяющих
+
+```bash
+# 1. Клонировать репозиторий
+git clone <repo>
+cd itmo-eplm-course
+git checkout hw05
+
+# 2. Настроить credentials
+cp .env.example .env
+# Заполнить CLEARML_API_ACCESS_KEY и CLEARML_API_SECRET_KEY
+
+# 3. Собрать образ
+docker-compose build
+
+# 4. Подготовить данные
+docker-compose run --rm dvc
+
+# 5. Запустить эксперименты
+docker-compose run --rm experiments
+
+# 6. Посмотреть результаты
+# Открыть https://app.clear.ml → Projects → titanic_classification
+```
+
+**Статус:** Docker-интеграция готова
+
+### 9.6 Документация
+
+#### Созданные файлы
+
+1. **docs/CLEARML_SETUP.md** - полное руководство по настройке ClearML
+   - Получение credentials
+   - Настройка окружения
+   - Запуск экспериментов (Docker и локально)
+   - Просмотр результатов
+   - Troubleshooting
+
+2. **Обновлён REPORT.md** - этот документ
+
+3. **Обновлён .env.example** - шаблон для credentials
+
+**Статус:** Документация готова
+
+### 9.7 Скриншоты
+
+**Необходимые скриншоты:**
+1. Список экспериментов в ClearML UI
+2. Детали одного эксперимента
+3. Графики (confusion matrix, ROC curve)
+4. Model Registry
+5. Сравнение моделей
+6. Pipeline DAG
+7. Pipeline выполнение
+
+**Путь:** `docs/screenshots/hw05/`
+
+**Примечание:** Скриншоты добавляются после запуска экспериментов.
+
+### 9.8 Команды для воспроизведения
+
+#### Локальный запуск
+
+```bash
+# Настройка credentials
+uv run clearml-init
+# Или через .env файл
+
+# Подготовка данных
+uv run dvc repro
+
+# Один эксперимент
+uv run python src/models/train_model.py random_forest_medium
+
+# Все эксперименты
+uv run python -m src.experiments.run_experiments --models all
+
+# ClearML Pipeline
+uv run python -m src.pipelines.clearml_pipeline --local
+
+# Model Registry CLI
+uv run python -m src.models.model_registry list-models
+uv run python -m src.models.model_registry best-model --metric accuracy
+```
+
+#### Docker запуск
+
+```bash
+# Сборка
+docker-compose build
+
+# Подготовка данных
+docker-compose run --rm dvc
+
+# Эксперименты
+docker-compose run --rm experiments
+
+# Pipeline
+docker-compose run --rm pipeline
+
+# Registry
+docker-compose run --rm registry list-models
+```
+
+### 9.9 Структура созданных файлов
+
+```
+src/
+├── clearml_utils/                    # Новый модуль
+│   ├── __init__.py
+│   ├── decorators.py                 # @clearml_task, @log_time
+│   ├── task_utils.py                 # log_metrics, log_artifact
+│   └── model_utils.py                # register_model, load_model
+│
+├── models/
+│   ├── train_model.py                # Модифицирован (ClearML)
+│   └── model_registry.py             # Новый CLI
+│
+├── experiments/
+│   └── run_experiments.py            # Модифицирован (ClearML)
+│
+└── pipelines/                        # Новая директория
+    ├── __init__.py
+    └── clearml_pipeline.py           # ClearML Pipeline
+
+configs/
+└── pipeline.yaml                     # Добавлен clearml_project_name
+
+docs/
+└── CLEARML_SETUP.md                  # Новая документация
+
+docker-compose.yml                    # Обновлён (новые сервисы)
+.env.example                          # Обновлён (ClearML credentials)
+.gitignore                            # Добавлен .clearml.conf
+```
+
+### 9.10 Скриншоты ClearML UI
+
+#### Список экспериментов
+
+![Список экспериментов](docs/screenshots/hw05/experiments_list.png)
+
+*Все 18 экспериментов успешно выполнены и отображаются в ClearML UI.*
+
+#### Детали эксперимента
+
+![Детали эксперимента](docs/screenshots/hw05/experiment_detail.png)
+
+*Информация о конкретном эксперименте: гиперпараметры, конфигурация, артефакты.*
+
+#### Графики (Plots)
+
+![Графики эксперимента](docs/screenshots/hw05/experiment_plots.png)
+
+*Confusion Matrix и ROC Curve автоматически захвачены ClearML.*
+
+#### Метрики (Scalars)
+
+![Метрики эксперимента](docs/screenshots/hw05/experiment_scalars.png)
+
+*Графики метрик: accuracy, precision, recall, f1_score, ROC AUC.*
+
+#### Model Registry
+
+![Список моделей](docs/screenshots/hw05/models_list.png)
+
+*Все обученные модели зарегистрированы в ClearML Model Registry.*
+
+#### Сравнение экспериментов
+
+![Сравнение экспериментов](docs/screenshots/hw05/compare_experiments.png)
+
+*Сравнение метрик нескольких экспериментов в ClearML UI.*
+
+### 9.11 Соответствие требованиям ДЗ 5
+
+| Требование | Баллы | Выполнено |
+|-----------|-------|----------|
+| **1. Настройка ClearML** | 3 | Модуль clearml_utils, credentials, Docker |
+| **2. Трекинг экспериментов** | 3 | Гиперпараметры, метрики, артефакты, графики |
+| **3. Управление моделями** | 3 | Model Registry CLI, регистрация, загрузка |
+| **4. ClearML Pipelines** | 2 | 7 stages, параллелизм, локальный/remote |
+| **5. Отчёт и документация** | 1 | REPORT.md, CLEARML_SETUP.md, скриншоты |
+| **ИТОГО** | **12** | **Все требования выполнены** |
+
+---
+
 ## Заключение
 
 **ДЗ 1:** ✅ Рабочее место Data Scientist полностью настроено
@@ -2127,4 +2633,6 @@ dvc.yaml                            # Расширен до 7 stages
 
 **ДЗ 3:** ✅ Трекинг экспериментов с MLflow реализован
 
-**ДЗ 4:** Автоматизация ML пайплайнов завершена
+**ДЗ 4:** ✅ Автоматизация ML пайплайнов завершена
+
+**ДЗ 5:** ✅ ClearML для MLOps интегрирован
