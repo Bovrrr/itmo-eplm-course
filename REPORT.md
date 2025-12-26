@@ -2399,6 +2399,12 @@ uv run python -m src.pipelines.clearml_pipeline --remote --queue default
 
 **Статус:** ClearML Pipeline реализован
 
+#### DAG визуализация
+
+![Pipeline DAG](docs/screenshots/hw05/pipeline_dag.png)
+
+*7-stage pipeline с параллельным выполнением feature_engineering и validate_data.*
+
 ### 9.5 Docker-интеграция
 
 #### Обновлённый docker-compose.yml
