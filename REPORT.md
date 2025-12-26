@@ -402,6 +402,8 @@ uv run dvc pull
 
 **Статус:** ✅ Pipeline работает, данные версионируются
 
+![DVC Pipeline](docs/screenshots/dvc-pipeline.png)
+
 #### Версионирование raw данных
 
 ```bash
@@ -511,6 +513,8 @@ mlflow:
 ```
 
 **Статус:** ✅ Docker интеграция готова
+
+![DVC в Docker](docs/screenshots/docker-dvc.png)
 
 ### 6.4 Отчет и документация (1 балл)
 
