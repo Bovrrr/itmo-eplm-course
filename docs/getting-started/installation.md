@@ -181,9 +181,8 @@ docker run --rm itmo-eplm-course:latest python -c "import numpy, pandas, sklearn
 docker-compose up jupyter
 # Доступен на http://localhost:8888
 
-# Запуск MLflow UI
-docker-compose up mlflow
-# Доступен на http://localhost:5000
+# Для просмотра результатов используйте ClearML Web UI
+# https://app.clear.ml → Projects → titanic_classification
 ```
 
 ---
@@ -193,5 +192,5 @@ docker-compose up mlflow
 После установки переходите к:
 
 - [Быстрый старт](quickstart.md) — первый запуск pipeline
-- [Версионирование](../guides/versioning.md) — работа с DVC и MLflow
+- [Версионирование](../guides/versioning.md) — работа с DVC и ClearML
 - [ClearML](../guides/clearml.md) — облачный трекинг экспериментов

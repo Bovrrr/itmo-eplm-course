@@ -47,8 +47,7 @@
 ### MLOps
 
 - **DVC** — версионирование данных и pipeline
-- **MLflow** — локальный трекинг экспериментов
-- **ClearML** — облачный трекинг и pipelines
+- **ClearML** — облачный трекинг экспериментов, Model Registry, pipelines
 
 ### Качество кода
 
@@ -93,7 +92,7 @@ itmo-eplm-course/
 │   ├── data/              # Обработка данных
 │   ├── experiments/       # Запуск экспериментов
 │   ├── features/          # Feature engineering
-│   ├── mlflow_utils/      # MLflow утилиты
+│   ├── mlflow_utils/      # MLflow утилиты (legacy, не используется)
 │   ├── models/            # ML модели
 │   ├── pipelines/         # ClearML pipelines
 │   └── utils/             # Вспомогательные утилиты
@@ -147,4 +146,4 @@ SOFTWARE.
 ## Благодарности
 
 - Курс ИТМО "Инженерные практики машинного обучения"
-- Сообщества open-source проектов: DVC, MLflow, ClearML, MkDocs
+- Сообщества open-source проектов: DVC, ClearML, MkDocs

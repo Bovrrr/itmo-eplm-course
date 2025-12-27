@@ -96,13 +96,11 @@ Path                           accuracy    f1_score    precision
 models/metrics.json            0.6842      0.625       0.6122
 ```
 
-### MLflow UI
+### ClearML
 
-```bash
-uv run mlflow ui --port 5000
-```
+Откройте [https://app.clear.ml](https://app.clear.ml) → Projects → titanic_classification
 
-Откройте [http://localhost:5000](http://localhost:5000) для просмотра:
+Здесь можно просмотреть:
 
 - Все запуски экспериментов
 - Параметры и метрики
@@ -180,7 +178,7 @@ docker-compose run --rm experiments
 
 ## Что дальше?
 
-- [Версионирование данных](../guides/versioning.md) — DVC и MLflow
+- [Версионирование данных](../guides/versioning.md) — DVC и ClearML
 - [ClearML интеграция](../guides/clearml.md) — облачный трекинг
 - [API Reference](../api/index.md) — документация модулей
 - [Результаты экспериментов](../experiments/results.md) — анализ моделей

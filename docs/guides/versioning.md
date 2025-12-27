@@ -9,7 +9,10 @@
 | Инструмент | Назначение |
 |------------|------------|
 | **DVC** | Версионирование данных и воспроизводимый pipeline |
-| **MLflow** | Отслеживание экспериментов и версионирование моделей |
+| **ClearML** | Отслеживание экспериментов, Model Registry, orchestration |
+
+!!! note "Примечание"
+    MLflow был заменён на ClearML в ДЗ 5. Подробнее о ClearML см. [ClearML интеграция](clearml.md).
 
 ---
 
@@ -87,39 +90,17 @@ git log --oneline -- data/raw/titanic.csv.dvc
 
 ---
 
-## MLflow (Model Tracking)
+## ClearML (Experiment Tracking)
 
-### Структура MLflow
+ClearML используется для:
 
-MLflow использует локальное file-based хранилище в директории `mlruns/`:
+- **Трекинга экспериментов** — параметры, метрики, артефакты
+- **Model Registry** — хранение и версионирование моделей
+- **Pipelines** — оркестрация ML workflows
 
-```
-mlruns/
-├── 0/                        # Experiment ID
-│   ├── meta.yaml            # Metadata эксперимента
-│   └── <run_id>/            # Каждый запуск обучения
-│       ├── meta.yaml        # Metadata запуска
-│       ├── params/          # Параметры модели
-│       ├── metrics/         # Метрики тренировки
-│       └── artifacts/       # Сохраненные артефакты
-```
+### Что логируется при обучении
 
-### Web UI
-
-MLflow предоставляет веб-интерфейс для просмотра экспериментов:
-
-```bash
-# Запуск MLflow UI (локально)
-uv run mlflow ui --port 5000
-# Открыть http://localhost:5000
-
-# Или через Docker
-docker-compose up mlflow
-```
-
-### Логирование экспериментов
-
-При запуске `src/models/train_model.py`, модель автоматически логирует:
+При запуске `src/models/train_model.py`, модель автоматически логирует в ClearML:
 
 **Параметры:**
 
@@ -143,6 +124,16 @@ docker-compose up mlflow
 - `confusion_matrix.png` — матрица ошибок
 - `roc_curve.png` — ROC-кривая
 
+### Просмотр результатов
+
+```bash
+# Откройте ClearML веб-интерфейс
+# https://app.clear.ml
+# Projects → titanic_classification
+```
+
+Подробнее см. [ClearML интеграция](clearml.md).
+
 ---
 
 ## Полный workflow
@@ -153,10 +144,10 @@ docker-compose up mlflow
 # 1. Установить зависимости
 uv sync
 
-# 2. Инициализировать DVC (если еще не инициализирован)
-uv run dvc init
+# 2. Настроить ClearML credentials (один раз)
+uv run clearml-init
 
-# 3. Запустить полный pipeline
+# 3. Запустить полный DVC pipeline
 uv run dvc repro
 
 # 4. Запушить данные в DVC remote
@@ -183,8 +174,8 @@ uv run dvc pull
 # 4. Воспроизвести pipeline
 uv run dvc repro
 
-# 5. Просмотреть результаты
-uv run mlflow ui
+# 5. Просмотреть результаты в ClearML
+# https://app.clear.ml → Projects → titanic_classification
 ```
 
 ### После обновления кода или данных
@@ -221,7 +212,7 @@ uv run dvc push
 
 ```bash
 # 1. Очистить результаты
-rm -rf data/processed models/model.pkl dvc.lock mlruns
+rm -rf data/processed models/model.pkl dvc.lock
 
 # 2. Загрузить исходные данные
 uv run dvc pull
@@ -241,9 +232,6 @@ uv run dvc repro
 # Запуск полного pipeline
 uv run dvc repro
 
-# Просмотр MLflow экспериментов
-uv run mlflow ui
-
 # Загрузить новые версии данных
 uv run dvc pull
 
@@ -258,6 +246,9 @@ uv run dvc dag
 
 # Запуск только обучения
 uv run dvc repro --single-stage train
+
+# Запуск экспериментов через ClearML
+uv run python -m src.experiments.run_experiments --models all
 ```
 
 ---
@@ -265,5 +256,6 @@ uv run dvc repro --single-stage train
 ## Дополнительные ресурсы
 
 - [DVC Documentation](https://dvc.org/doc)
-- [MLflow Documentation](https://mlflow.org/docs/latest)
+- [ClearML Documentation](https://clear.ml/docs/)
+- [ClearML интеграция](clearml.md)
 - [Воспроизводимость](reproducibility.md)

@@ -110,12 +110,8 @@ docker-compose run --rm app uv run dvc repro
 ### Просмотр результатов
 
 ```bash
-# MLflow UI
-docker-compose up mlflow
-# Открыть http://localhost:5000
-
-# ClearML (если настроен)
-# Открыть https://app.clear.ml
+# ClearML Web UI
+# Открыть https://app.clear.ml → Projects → titanic_classification
 ```
 
 ---

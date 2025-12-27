@@ -163,8 +163,8 @@ uv run python -m src.experiments.run_experiments --models all
 # Анализ результатов
 uv run python -m src.experiments.analyze_experiments --top-n 18
 
-# Просмотр в MLflow UI
-uv run mlflow ui --port 5000
+# Просмотр результатов в ClearML
+# https://app.clear.ml → Projects → titanic_classification
 ```
 
 Подробнее в [Воспроизводимость](../guides/reproducibility.md).

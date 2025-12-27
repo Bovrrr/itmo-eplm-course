@@ -10,7 +10,7 @@
 | `src.models` | Обучение, оценка и валидация ML моделей |
 | `src.experiments` | Массовый запуск и анализ экспериментов |
 | `src.clearml_utils` | Интеграция с ClearML |
-| `src.mlflow_utils` | Утилиты для MLflow |
+| `src.mlflow_utils` | *(Legacy, не используется)* |
 | `src.config` | Управление конфигурациями через Pydantic |
 
 ---
@@ -65,7 +65,7 @@ split_data(
 
 ### train_model
 
-Обучение модели с логированием в MLflow/ClearML.
+Обучение модели с логированием в ClearML.
 
 ```python
 from src.models.train_model import train_model_pipeline

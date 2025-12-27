@@ -13,7 +13,7 @@
 Этот проект демонстрирует лучшие практики разработки ML-систем:
 
 - **Версионирование данных** с DVC
-- **Трекинг экспериментов** с MLflow и ClearML
+- **Трекинг экспериментов** с ClearML
 - **Автоматизация pipeline** с DVC Pipelines
 - **Управление конфигурациями** с Pydantic
 - **Качество кода** с Ruff, MyPy, Bandit
@@ -33,7 +33,7 @@ uv sync
 uv run dvc repro
 
 # Просмотр результатов
-uv run mlflow ui
+# Откройте https://app.clear.ml → Projects → titanic_classification
 ```
 
 Подробнее в разделе [Установка](getting-started/installation.md).
@@ -74,8 +74,7 @@ uv run dvc repro
 
 ### Трекинг экспериментов
 
-- **MLflow**: локальный трекинг
-- **ClearML**: облачный трекинг с pipelines
+- **ClearML**: облачный трекинг экспериментов, Model Registry, pipelines
 
 ## Навигация
 
@@ -93,7 +92,7 @@ uv run dvc repro
 
     ---
 
-    DVC, MLflow, ClearML, воспроизводимость
+    DVC, ClearML, воспроизводимость
 
     [:octicons-arrow-right-24: Руководства](guides/setup.md)
 
@@ -122,7 +121,7 @@ uv run dvc repro
 | Язык | Python 3.13+ |
 | Пакетный менеджер | UV |
 | ML | scikit-learn, CatBoost, XGBoost |
-| Трекинг | MLflow, ClearML |
+| Трекинг | ClearML |
 | Версионирование | DVC, Git |
 | Качество кода | Ruff, MyPy, Bandit |
 | Документация | MkDocs Material |
