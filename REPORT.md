@@ -2631,6 +2631,228 @@ docker-compose.yml                    # Обновлён (новые серви�
 
 ---
 
+## 10. ДЗ 6: Документация и отчёты
+
+**Ветка:** `hw06`
+
+**Дата:** 28 декабря 2024
+
+**Цель:** Создание полноценной документации проекта с автоматической публикацией на GitHub Pages.
+
+### 10.1 Техническая документация (2 балла)
+
+#### Выбор инструмента
+
+Выбран **MkDocs** с темой **Material** вместо Sphinx по следующим причинам:
+
+| Критерий | MkDocs Material | Sphinx |
+|----------|-----------------|--------|
+| Формат | Markdown (нативный) | reStructuredText |
+| Настройка | Минимальная | Сложная |
+| Внешний вид | Современный | Классический |
+| Поиск | Встроенный (русский) | Требует плагины |
+
+#### Конфигурация MkDocs
+
+```yaml
+# mkdocs.yml
+site_name: ITMO EPLM Course
+theme:
+  name: material
+  language: ru
+  palette:
+    - scheme: default
+    - scheme: slate  # Тёмная тема
+  features:
+    - navigation.tabs
+    - search.suggest
+    - content.code.copy
+
+plugins:
+  - search:
+      lang: ru
+  - mkdocstrings:  # Автогенерация API из docstrings
+      handlers:
+        python:
+          options:
+            docstring_style: google
+```
+
+#### Структура документации
+
+```text
+docs/
+├── index.md                    # Главная страница
+├── getting-started/
+│   ├── installation.md         # Установка
+│   └── quickstart.md           # Быстрый старт
+├── guides/
+│   ├── setup.md                # Развёртывание
+│   ├── versioning.md           # DVC + ClearML
+│   ├── clearml.md              # ClearML интеграция
+│   └── reproducibility.md      # Воспроизводимость
+├── api/
+│   └── index.md                # API Reference (mkdocstrings)
+├── experiments/
+│   ├── results.md              # Результаты экспериментов
+│   └── comparison.md           # Сравнение моделей
+├── assets/
+│   └── figures/                # Графики (5 PNG)
+└── about.md                    # О проекте
+```
+
+### 10.2 Публикация в GitHub Pages (3 балла)
+
+#### GitHub Actions Workflow
+
+```yaml
+# .github/workflows/docs.yml
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main, hw06]
+    paths: ['docs/**', 'src/**/*.py', 'mkdocs.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group docs
+      - run: uv run mkdocs build --strict
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+```
+
+#### Результат
+
+- **URL:** https://bovrrr.github.io/itmo-eplm-course/
+- **Автообновление:** При push в main/hw06
+- **Триггеры:** Изменения в docs/, src/, mkdocs.yml
+
+![Документация на GitHub Pages](docs/screenshots/hw06/pages-docs.png)
+
+*Главная страница документации на GitHub Pages.*
+
+### 10.3 Отчёты об экспериментах (2 балла)
+
+#### Структурированные отчёты
+
+Созданы два Markdown-отчёта:
+
+1. **`docs/experiments/results.md`** — обзор результатов:
+   - Описание датасета и разделения
+   - Топ-5 моделей по accuracy
+   - Лучшие модели по каждой метрике
+   - Встроенные визуализации
+
+2. **`docs/experiments/comparison.md`** — детальное сравнение:
+   - Таблица всех 18 конфигураций
+   - Анализ по типам моделей (SVC, RF, CatBoost, etc.)
+   - Влияние гиперпараметров
+   - Рекомендации по выбору модели
+
+#### Визуализации
+
+В документацию встроены 5 графиков из `reports/figures/`:
+
+| График | Описание |
+|--------|----------|
+| `metrics_comparison.png` | Сравнение метрик всех моделей |
+| `metrics_heatmap.png` | Корреляция метрик |
+| `model_comparison_boxplot.png` | Boxplot по типам моделей |
+| `training_time_comparison.png` | Время обучения |
+| `best_models_summary.png` | Топ-5 моделей |
+
+#### Скрипт автогенерации
+
+```python
+# scripts/generate_experiment_report.py
+def generate_report(results, best_models, figures_dir):
+    """Генерировать Markdown отчёт из CSV/JSON результатов."""
+    # Загрузка данных
+    # Генерация таблиц
+    # Встраивание графиков
+    return markdown_report
+```
+
+Использование:
+
+```bash
+uv run python scripts/generate_experiment_report.py \
+    --results reports/experiment_results.csv \
+    --output docs/experiments/generated_results.md
+```
+
+### 10.4 Воспроизводимость (1 балл)
+
+#### Обновлённый README.md
+
+README.md полностью переработан с фокусом на проект:
+
+- **Было:** 300 строк (много про UV, управление зависимостями)
+- **Стало:** 180 строк (ключевые особенности, результаты, pipeline)
+
+Добавлены секции:
+
+- Ключевые особенности проекта
+- Результаты экспериментов (таблица топ-4 моделей)
+- ML Pipeline (DVC DAG)
+- Ссылки на документацию
+
+#### Инструкции в документации
+
+- `docs/getting-started/installation.md` — полная установка
+- `docs/getting-started/quickstart.md` — запуск за 5 минут
+- `docs/guides/reproducibility.md` — гарантии воспроизводимости
+
+### 10.5 Созданные файлы
+
+| Файл | Описание |
+|------|----------|
+| `mkdocs.yml` | Конфигурация MkDocs Material |
+| `.github/workflows/docs.yml` | GitHub Actions для автодеплоя |
+| `docs/index.md` | Главная страница |
+| `docs/getting-started/*.md` | Установка и быстрый старт |
+| `docs/guides/*.md` | Руководства (4 файла) |
+| `docs/api/index.md` | API Reference с mkdocstrings |
+| `docs/experiments/*.md` | Отчёты об экспериментах |
+| `docs/about.md` | О проекте |
+| `scripts/generate_experiment_report.py` | Автогенерация отчётов |
+
+### 10.6 Соответствие требованиям ДЗ 6
+
+| Требование | Баллы | Выполнено |
+|-----------|-------|----------|
+| **1. Техническая документация** | 2 | MkDocs + Material, mkdocstrings, руководства |
+| **2. Публикация в GitHub Pages** | 3 | GitHub Actions, автообновление, URL |
+| **3. Отчёты об экспериментах** | 2 | Markdown, таблицы, графики, автогенерация |
+| **4. Воспроизводимость** | 1 | README.md, инструкции, быстрый старт |
+| **ИТОГО** | **8** | **Все требования выполнены** |
+
+---
+
 ## Заключение
 
 **ДЗ 1:** ✅ Рабочее место Data Scientist полностью настроено
@@ -2642,3 +2864,5 @@ docker-compose.yml                    # Обновлён (новые серви�
 **ДЗ 4:** ✅ Автоматизация ML пайплайнов завершена
 
 **ДЗ 5:** ✅ ClearML для MLOps интегрирован
+
+**ДЗ 6:** ✅ Документация и отчёты опубликованы на GitHub Pages
