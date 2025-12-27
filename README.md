@@ -1,299 +1,181 @@
 # ITMO EPLM Course
 
-Проект для курса "Инженерные практики в ML" (ИТМО).
+Проект курса "Инженерные практики в ML" (ИТМО).
 
 [![Documentation](https://img.shields.io/badge/docs-MkDocs-blue.svg)](https://bovrrr.github.io/itmo-eplm-course/)
 [![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
-[![UV](https://img.shields.io/badge/UV-Package%20Manager-blueviolet.svg)](https://github.com/astral-sh/uv)
+[![ClearML](https://img.shields.io/badge/ClearML-Experiment%20Tracking-brightgreen.svg)](https://clear.ml/)
 
-## Описание
+## О проекте
 
-Настройка полнофункционального рабочего места Data Scientist с использованием современных инженерных практик. Проект демонстрирует применение best practices для Machine Learning проектов с фокусом на качество кода, воспроизводимость и автоматизацию.
+**Цель:** Демонстрация MLOps практик на примере задачи классификации (Titanic).
 
-**Датасет:** Titanic (классификация выживания пассажиров)
+Проект создан для изучения и применения современных инженерных подходов к ML-разработке, с акцентом на воспроизводимость, автоматизацию и качество кода.
 
-**Цель:** Создать ML проект с акцентом на инженерные аспекты, а не на сложность ML задачи.
+### Ключевые особенности
+
+- **Воспроизводимый ML Pipeline** — DVC + фиксированные seeds (`random_state=42`)
+- **Трекинг экспериментов** — ClearML (18 конфигураций моделей)
+- **Версионирование** — данные (DVC), код (Git), модели (ClearML Model Registry)
+- **Контейнеризация** — Docker + Docker Compose
+- **Качество кода** — Ruff, MyPy (strict), Bandit, pre-commit hooks
+- **Документация** — MkDocs Material + автогенерация API
+
+---
+
+## Быстрый старт
+
+```bash
+# Клонирование и установка
+git clone https://github.com/Bovrrr/itmo-eplm-course.git
+cd itmo-eplm-course
+uv sync
+
+# Запуск ML pipeline
+uv run dvc repro
+
+# Просмотр результатов
+uv run dvc metrics show
+```
+
+> **Требования:** Python 3.13+, [UV](https://github.com/astral-sh/uv), Git
+
+---
+
+## ML Pipeline
+
+```text
+prepare → split → feature_engineering → train → evaluate → validate_model
+                      ↑
+              validate_data
+```
+
+Pipeline управляется через DVC и автоматически:
+
+- Загружает и обрабатывает данные Titanic
+- Создаёт признаки и разделяет на train/val/test
+- Обучает модель и логирует метрики в ClearML
+- Валидирует качество модели
+
+```bash
+# Просмотр графа зависимостей
+uv run dvc dag
+
+# Принудительное переобучение
+uv run dvc repro --force
+```
+
+---
+
+## Результаты экспериментов
+
+Проведено **18 экспериментов** с различными алгоритмами:
+
+| Модель | Accuracy | F1-Score | Precision |
+|--------|----------|----------|-----------|
+| **SVC (RBF, C=1)** | **0.7105** | 0.5417 | 0.7879 |
+| CatBoost (deep) | 0.7039 | **0.5946** | 0.6471 |
+| RandomForest (small) | 0.7039 | 0.5714 | 0.7059 |
+| LogisticRegression (L1) | 0.6908 | 0.5524 | 0.6786 |
+
+**Лучшие результаты:**
+
+- По Accuracy: SVC с RBF ядром
+- По F1-Score: CatBoost (лучший баланс precision/recall)
+
+Подробный анализ: [Результаты экспериментов](https://bovrrr.github.io/itmo-eplm-course/experiments/results/)
+
+---
 
 ## Структура проекта
 
-```
+```text
 itmo-eplm-course/
+├── configs/               # Pydantic конфигурации моделей (18 файлов)
 ├── data/
-│   ├── raw/              # Исходные данные
-│   ├── interim/          # Промежуточные данные
-│   ├── processed/        # Обработанные данные
-│   └── external/         # Внешние данные
-├── models/               # Сохраненные модели
-├── notebooks/            # Jupyter notebooks для исследований
-├── src/                  # Исходный код проекта
-│   ├── data/             # Скрипты для работы с данными
-│   ├── features/         # Создание признаков
-│   ├── models/           # Код моделей
-│   └── visualization/    # Визуализация
-├── tests/                # Тесты
-├── docs/                 # Документация
-├── reports/              # Отчеты и результаты
-│   └── figures/          # Графики и визуализации
-├── references/           # Справочные материалы
-├── .github/
-│   └── workflows/        # CI/CD конфигурации
-├── pyproject.toml        # Конфигурация проекта и зависимости
-├── Dockerfile            # Docker образ
-├── docker-compose.yml    # Docker Compose конфигурация
-├── .pre-commit-config.yaml # Pre-commit hooks
-├── .gitignore            # Git ignore правила
-└── README.md             # Этот файл
+│   ├── raw/               # Исходные данные (Titanic)
+│   ├── processed/         # Обработанные данные
+│   └── features/          # Признаки для обучения
+├── src/
+│   ├── data/              # Загрузка и обработка данных
+│   ├── models/            # Обучение и оценка моделей
+│   ├── experiments/       # Массовый запуск экспериментов
+│   ├── clearml_utils/     # ClearML интеграция
+│   └── pipelines/         # ClearML Pipelines
+├── docs/                  # Документация (MkDocs)
+├── tests/                 # Тесты (pytest)
+├── dvc.yaml               # DVC pipeline
+└── mkdocs.yml             # Конфигурация документации
 ```
 
-## Требования
+---
 
-- Python 3.14+
-- UV 0.8+ (современный пакетный менеджер для Python)
-- Docker (опционально, для контейнеризации)
-- Git
+## Технологии
 
-## Установка
+| Категория | Инструменты |
+|-----------|-------------|
+| **ML** | scikit-learn, CatBoost |
+| **MLOps** | DVC, ClearML |
+| **Качество кода** | Ruff, MyPy, Bandit, pre-commit |
+| **Документация** | MkDocs Material, mkdocstrings |
+| **Контейнеризация** | Docker, Docker Compose |
+| **CI/CD** | GitHub Actions |
 
-### Быстрый старт
-
-#### 1. Клонирование репозитория
-
-```bash
-git clone <repository-url>
-cd itmo-eplm-course
-git checkout hw01
-```
-
-#### 2. Установка UV (если не установлен)
-
-**macOS/Linux:**
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-**Windows:**
-```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-#### 3. Установка зависимостей
-
-```bash
-# Создание виртуального окружения и установка зависимостей
-uv sync
-
-# Установка dev-зависимостей для разработки
-uv sync --all-extras
-```
-
-#### 4. Активация pre-commit hooks
-
-```bash
-uv run pre-commit install
-```
-
-#### 5. Проверка установки
-
-```bash
-# Проверка версий
-uv run python --version
-uv run pytest --version
-
-# Запуск тестов
-uv run pytest
-
-# Запуск проверок качества кода
-uv run pre-commit run --all-files
-```
+---
 
 ## Документация
 
-Полная документация проекта доступна на [GitHub Pages](https://bovrrr.github.io/itmo-eplm-course/).
+Полная документация доступна на **[GitHub Pages](https://bovrrr.github.io/itmo-eplm-course/)**.
 
-### Локальная сборка документации
+### Разделы
+
+- [Установка](https://bovrrr.github.io/itmo-eplm-course/getting-started/installation/) — настройка окружения
+- [Быстрый старт](https://bovrrr.github.io/itmo-eplm-course/getting-started/quickstart/) — первый запуск
+- [ClearML](https://bovrrr.github.io/itmo-eplm-course/guides/clearml/) — трекинг экспериментов
+- [API Reference](https://bovrrr.github.io/itmo-eplm-course/api/) — документация модулей
+
+### Локальная сборка
 
 ```bash
-# Установка зависимостей для документации
 uv sync --group docs
-
-# Запуск локального сервера документации
 uv run mkdocs serve
 # Открыть http://localhost:8000
-
-# Сборка статических файлов
-uv run mkdocs build
 ```
 
-### Структура документации
+---
 
-- **Начало работы** — установка и быстрый старт
-- **Руководства** — DVC, ClearML, воспроизводимость
-- **API Reference** — документация модулей
-- **Эксперименты** — результаты и сравнение моделей
-
-## Использование
-
-### Разработка
-
-#### Запуск Jupyter Notebook
+## Docker
 
 ```bash
-uv run jupyter notebook
+# Подготовка данных
+docker-compose run --rm dvc
+
+# Запуск всех экспериментов
+docker-compose run --rm experiments
+
+# Jupyter Lab
+docker-compose up jupyter
+# Открыть http://localhost:8888
 ```
 
-#### Запуск скриптов
+---
+
+## Воспроизведение результатов
+
+Все результаты полностью воспроизводимы благодаря:
+
+| Компонент | Механизм |
+|-----------|----------|
+| Python зависимости | `uv.lock` (точные версии) |
+| Данные | DVC + `dvc.lock` |
+| Random seeds | `random_state=42` |
+| Контейнеризация | `Dockerfile` |
 
 ```bash
-# Пример запуска скрипта препроцессинга
-uv run python src/data/make_dataset.py
+# Полное воспроизведение
+git clone https://github.com/Bovrrr/itmo-eplm-course.git
+cd itmo-eplm-course
+uv sync
+uv run dvc pull
+uv run dvc repro
 ```
-
-#### Проверка качества кода
-
-```bash
-# Линтинг с Ruff
-uv run ruff check .
-
-# Форматирование кода
-uv run ruff format .
-
-# Проверка типов с MyPy
-uv run mypy src/
-
-# Проверка безопасности с Bandit
-uv run bandit -r src/
-```
-
-#### Запуск тестов
-
-```bash
-# Запуск всех тестов
-uv run pytest
-
-# Запуск с покрытием кода
-uv run pytest --cov=src --cov-report=html
-
-# Просмотр отчета о покрытии
-open htmlcov/index.html
-```
-
-### Docker
-
-#### Сборка Docker образа
-
-```bash
-docker build -t itmo-eplm-course:latest .
-```
-
-#### Запуск контейнера
-
-```bash
-# Запуск основного контейнера
-docker run -it --rm itmo-eplm-course:latest
-
-# Запуск с монтированием данных
-docker run -it --rm -v $(pwd)/data:/app/data itmo-eplm-course:latest
-```
-
-#### Использование Docker Compose
-
-```bash
-# Запуск сервисов
-docker-compose up -d
-
-# Просмотр логов
-docker-compose logs -f
-
-# Остановка сервисов
-docker-compose down
-```
-
-### Управление зависимостями
-
-#### Добавление новой зависимости
-
-```bash
-# Основная зависимость
-uv add package-name
-
-# Dev зависимость
-uv add --dev package-name
-
-# С конкретной версией
-uv add "package-name>=1.0.0,<2.0.0"
-```
-
-#### Обновление зависимостей
-
-```bash
-# Обновить все зависимости
-uv lock --upgrade
-
-# Обновить конкретный пакет
-uv lock --upgrade-package package-name
-```
-
-## Инструменты качества кода
-
-Проект использует следующие инструменты для обеспечения качества кода:
-
-- **Ruff** - быстрый линтер и форматтер (замена Black + isort + flake8)
-- **MyPy** - статическая проверка типов
-- **Bandit** - проверка безопасности кода
-- **pytest** - фреймворк для тестирования
-- **pre-commit** - автоматические проверки перед коммитом
-
-Все проверки запускаются автоматически при коммите через pre-commit hooks.
-
-## Стиль кода
-
-Проект следует следующим стандартам:
-
-- Максимальная длина строки: 100 символов
-- Стиль импортов: сортировка через isort (встроен в Ruff)
-- Стиль кавычек: двойные кавычки
-- Проверка типов: обязательна для всего кода в `src/`
-- Conventional Commits для сообщений коммитов
-
-## Разработка
-
-### Процесс разработки
-
-1. Создайте feature ветку: `git checkout -b feature/your-feature`
-2. Внесите изменения
-3. Запустите проверки: `uv run pre-commit run --all-files`
-4. Закоммитьте изменения: `git commit -m "feat: описание изменения"`
-5. Запушьте ветку: `git push origin feature/your-feature`
-6. Создайте Pull Request
-
-### Стиль коммитов
-
-Проект использует [Conventional Commits](https://www.conventionalcommits.org/):
-
-- `feat:` - новая функциональность
-- `fix:` - исправление бага
-- `docs:` - изменения в документации
-- `style:` - форматирование кода
-- `refactor:` - рефакторинг
-- `test:` - добавление тестов
-- `chore:` - вспомогательные изменения
-
-## Документация
-
-Подробная документация доступна в директории `docs/`:
-
-- [SETUP.md](docs/SETUP.md) - Детальная инструкция по настройке окружения
-- [REPORT.md](REPORT.md) - Отчет о выполнении ДЗ 1
-
-## Лицензия
-
-MIT License - см. файл [LICENSE](LICENSE)
-
-## Авторы
-
-- Baurzhan - [GitHub](https://github.com/Bovrrr)
-
-## Благодарности
-
-- [Cookiecutter Data Science](https://drivendata.github.io/cookiecutter-data-science/) - шаблон структуры проекта
-- ИТМО - курс "Инженерные практики в ML"
