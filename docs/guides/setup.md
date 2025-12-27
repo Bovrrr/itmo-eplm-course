@@ -1,19 +1,6 @@
-# Инструкция по воспроизводимости проекта
+# Руководство по развёртыванию
 
 Подробное руководство по развёртыванию рабочего окружения для проекта ITMO EPLM Course.
-
-## Содержание
-
-- [Требования](#требования)
-- [Установка UV](#установка-uv)
-- [Клонирование репозитория](#клонирование-репозитория)
-- [Установка зависимостей](#установка-зависимостей)
-- [Настройка pre-commit hooks](#настройка-pre-commit-hooks)
-- [Проверка установки](#проверка-установки)
-- [Docker](#docker)
-- [Troubleshooting](#troubleshooting)
-
----
 
 ## Требования
 
@@ -37,17 +24,17 @@
 
 UV - это современный, быстрый пакетный менеджер для Python (10-100x быстрее pip).
 
-### macOS и Linux
+=== "macOS / Linux"
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+    ```bash
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
 
-### Windows (PowerShell)
+=== "Windows (PowerShell)"
 
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
+    ```powershell
+    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
 
 ### Проверка установки
 
@@ -62,11 +49,11 @@ uv --version
 
 ```bash
 # Клонирование репозитория
-git clone <URL-вашего-репозитория> itmo-eplm-course
+git clone https://github.com/Bovrrr/itmo-eplm-course.git
 cd itmo-eplm-course
 
 # Переключение на рабочую ветку (если требуется)
-git checkout hw01
+git checkout hw06
 ```
 
 ---
@@ -116,7 +103,8 @@ uv run pre-commit install
 uv run pre-commit run --all-files
 ```
 
-**Примечание:** Некоторые хуки (например, Ruff) могут автоматически исправлять проблемы. Просмотрите изменения перед коммитом.
+!!! note "Автоисправление"
+    Некоторые хуки (например, Ruff) могут автоматически исправлять проблемы. Просмотрите изменения перед коммитом.
 
 ---
 
@@ -168,10 +156,10 @@ uv run pytest
 
 ```bash
 # Простой запуск
-python main.py
+python src/main.py
 
 # Или через UV
-uv run python main.py
+uv run python src/main.py
 ```
 
 **Ожидаемый вывод:**
@@ -233,7 +221,8 @@ docker-compose down -v
 http://localhost:8888
 ```
 
-**Примечание:** В конфигурации отключена аутентификация для разработки. Для production обязательно настройте пароль!
+!!! warning "Безопасность"
+    В конфигурации отключена аутентификация для разработки. Для production обязательно настройте пароль!
 
 ---
 
@@ -286,10 +275,6 @@ uv run ruff format .
 ```bash
 DOCKER_BUILDKIT=1 docker build -t itmo-eplm-course:latest .
 ```
-3. Используйте кэш:
-```bash
-docker build --build-arg BUILDKIT_INLINE_CACHE=1 -t itmo-eplm-course:latest .
-```
 
 ### Jupyter не запускается в Docker
 
@@ -304,68 +289,10 @@ docker-compose logs jupyter
 ```bash
 lsof -i :8888
 ```
-3. Попробуйте другой порт в `docker-compose.yml`:
-```yaml
-ports:
-  - "8889:8888"
-```
-
-### Ошибка прав доступа в Docker
-
-**Проблема:** Permission denied при работе с файлами.
-
-**Решение:**
-```bash
-# Исправить права на директории
-chmod -R 755 data models notebooks
-
-# Или пересоздать с правильными правами
-docker-compose down
-docker-compose up --build
-```
-
-### MyPy жалуется на отсутствующие типы
-
-**Проблема:** `error: Library stubs not installed`.
-
-**Решение:**
-Добавьте в `pyproject.toml`:
-```toml
-[[tool.mypy.overrides]]
-module = ["library_name.*"]
-ignore_missing_imports = true
-```
-
-### UV sync зависает
-
-**Проблема:** `uv sync` не завершается.
-
-**Решение:**
-1. Проверьте интернет-соединение
-2. Попробуйте очистить кэш:
-```bash
-uv cache clean
-uv sync
-```
-3. Используйте verbose режим для диагностики:
-```bash
-uv sync -v
-```
 
 ---
 
-## Дополнительные ресурсы
-
-### Документация инструментов
-
-- [UV Documentation](https://github.com/astral-sh/uv)
-- [Ruff Documentation](https://docs.astral.sh/ruff/)
-- [MyPy Documentation](https://mypy.readthedocs.io/)
-- [Bandit Documentation](https://bandit.readthedocs.io/)
-- [Pre-commit Documentation](https://pre-commit.com/)
-- [Docker Documentation](https://docs.docker.com/)
-
-### Полезные команды
+## Полезные команды
 
 ```bash
 # Обновление всех зависимостей
@@ -389,13 +316,9 @@ uv lock --check
 
 ---
 
-## Контакты и поддержка
+## Дополнительные ресурсы
 
-При возникновении проблем:
-1. Проверьте этот документ (Troubleshooting)
-2. Проверьте Issues в репозитории
-3. Создайте новый Issue с описанием проблемы
-
-**Автор:** Baurzhan
-**Email:** baurzhanonbaev@gmail.com
-**Репозиторий:** <ссылка-на-репозиторий>
+- [UV Documentation](https://github.com/astral-sh/uv)
+- [Ruff Documentation](https://docs.astral.sh/ruff/)
+- [MyPy Documentation](https://mypy.readthedocs.io/)
+- [Docker Documentation](https://docs.docker.com/)

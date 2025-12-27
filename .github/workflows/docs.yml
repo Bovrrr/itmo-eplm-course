@@ -1,0 +1,85 @@
+# GitHub Actions workflow для автоматической публикации документации
+# Документация: https://squidfunk.github.io/mkdocs-material/publishing-your-site/
+
+name: Deploy Documentation
+
+on:
+  # Триггер на push в main
+  push:
+    branches:
+      - main
+      - hw06
+    paths:
+      - 'docs/**'
+      - 'src/**/*.py'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+
+  # Ручной запуск
+  workflow_dispatch:
+
+# Права для GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Предотвращение параллельных деплоев
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Job для сборки документации
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout репозитория
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Для git-revision-date
+
+      # Настройка Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # Установка UV
+      - name: Install UV
+        uses: astral-sh/setup-uv@v4
+
+      # Установка зависимостей
+      - name: Install dependencies
+        run: |
+          uv sync --group docs
+
+      # Сборка документации
+      - name: Build documentation
+        run: |
+          uv run mkdocs build --strict
+        env:
+          # Отключить CI warnings для mkdocstrings
+          PYTHONDONTWRITEBYTECODE: 1
+
+      # Загрузка артефакта для деплоя
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+  # Job для деплоя на GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,10 @@
-# ITMO EPLM Course - Homework 1
+# ITMO EPLM Course
 
 Проект для курса "Инженерные практики в ML" (ИТМО).
+
+[![Documentation](https://img.shields.io/badge/docs-MkDocs-blue.svg)](https://bovrrr.github.io/itmo-eplm-course/)
+[![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)](https://python.org)
+[![UV](https://img.shields.io/badge/UV-Package%20Manager-blueviolet.svg)](https://github.com/astral-sh/uv)
 
 ## Описание
 
@@ -101,6 +105,31 @@ uv run pytest
 # Запуск проверок качества кода
 uv run pre-commit run --all-files
 ```
+
+## Документация
+
+Полная документация проекта доступна на [GitHub Pages](https://bovrrr.github.io/itmo-eplm-course/).
+
+### Локальная сборка документации
+
+```bash
+# Установка зависимостей для документации
+uv sync --group docs
+
+# Запуск локального сервера документации
+uv run mkdocs serve
+# Открыть http://localhost:8000
+
+# Сборка статических файлов
+uv run mkdocs build
+```
+
+### Структура документации
+
+- **Начало работы** — установка и быстрый старт
+- **Руководства** — DVC, MLflow, ClearML, воспроизводимость
+- **API Reference** — документация модулей
+- **Эксперименты** — результаты и сравнение моделей
 
 ## Использование
 

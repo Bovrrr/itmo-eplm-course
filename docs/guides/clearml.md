@@ -1,15 +1,28 @@
-# ClearML: Быстрый старт
+# ClearML интеграция
 
-Это руководство поможет настроить и запустить эксперименты с ClearML.
+Руководство по настройке и использованию ClearML для трекинга экспериментов.
 
-## 1. Получение credentials
+## Обзор
+
+ClearML — облачная платформа для:
+
+- Трекинга ML экспериментов
+- Model Registry
+- Orchestration pipelines
+- Data Management
+
+---
+
+## Получение credentials
 
 1. Зарегистрируйтесь на [https://app.clear.ml](https://app.clear.ml) (бесплатно)
 2. Войдите в аккаунт
 3. Перейдите в **Settings → Workspace → Create new credentials**
 4. Скопируйте **Access Key** и **Secret Key**
 
-## 2. Настройка окружения
+---
+
+## Настройка окружения
 
 ### Вариант A: Через .env файл (рекомендуется для Docker)
 
@@ -29,9 +42,11 @@ uv run clearml-init
 # Следовать инструкциям на экране
 ```
 
-## 3. Запуск экспериментов
+---
 
-### В Docker (рекомендуется для проверяющих)
+## Запуск экспериментов
+
+### В Docker (рекомендуется)
 
 ```bash
 # Собрать образ
@@ -63,18 +78,30 @@ uv run python -m src.experiments.run_experiments --models all
 uv run python -m src.pipelines.clearml_pipeline --local
 ```
 
-## 4. Просмотр результатов
+---
+
+## Просмотр результатов
 
 Откройте [https://app.clear.ml](https://app.clear.ml) и перейдите в:
+
 - **Projects → titanic_classification** — список всех экспериментов
 - Нажмите на эксперимент для просмотра деталей
-- Вкладка **Scalars** — графики метрик
-- Вкладка **Plots** — confusion matrix, ROC curve
-- Вкладка **Artifacts** — файлы (модели, отчёты)
 
-## 5. Model Registry
+### Вкладки эксперимента
 
-Просмотр моделей через CLI:
+| Вкладка | Содержимое |
+|---------|------------|
+| **Scalars** | Графики метрик (accuracy, f1, etc.) |
+| **Plots** | Confusion matrix, ROC curve |
+| **Artifacts** | Файлы (модели, отчёты) |
+| **Configuration** | Параметры эксперимента |
+| **Console** | Логи выполнения |
+
+---
+
+## Model Registry
+
+### Просмотр моделей через CLI
 
 ```bash
 # Список всех моделей
@@ -87,7 +114,15 @@ docker-compose run --rm registry best-model --metric accuracy
 docker-compose run --rm registry compare-models
 ```
 
-## 6. Docker-сервисы
+### Через веб-интерфейс
+
+1. Откройте [https://app.clear.ml](https://app.clear.ml)
+2. Перейдите в **Models** в левом меню
+3. Фильтруйте по проекту `titanic_classification`
+
+---
+
+## Docker-сервисы
 
 | Сервис | Команда | Описание |
 |--------|---------|----------|
@@ -98,7 +133,35 @@ docker-compose run --rm registry compare-models
 | `registry` | `docker-compose run --rm registry list-models` | Model Registry CLI |
 | `jupyter` | `docker-compose up jupyter` | Jupyter Lab на порту 8888 |
 
-## 7. Структура проекта
+---
+
+## Архитектура Pipeline
+
+```
+prepare_data
+    ↓
+split_data
+    ↓
+    ├── feature_engineering (параллельно)
+    └── validate_data       (параллельно)
+         ↓
+    train_model
+         ↓
+    evaluate_model
+         ↓
+    validate_model
+```
+
+Все stages автоматически логируются в ClearML с:
+
+- Входными/выходными артефактами
+- Метриками качества
+- Временем выполнения
+- Параметрами конфигурации
+
+---
+
+## Структура проекта
 
 ```
 src/
@@ -116,28 +179,14 @@ src/
     └── clearml_pipeline.py  # ClearML Pipeline (7 stages)
 ```
 
-## 8. Архитектура Pipeline
+---
 
-```
-prepare_data
-    ↓
-split_data
-    ↓
-    ├── feature_engineering (параллельно)
-    └── validate_data       (параллельно)
-         ↓
-    train_model
-         ↓
-    evaluate_model
-         ↓
-    validate_model
-```
-
-## 9. Troubleshooting
+## Troubleshooting
 
 ### Ошибка "Could not find credentials"
 
 Проверьте что `.env` файл существует и содержит правильные credentials:
+
 ```bash
 cat .env | grep CLEARML
 ```
@@ -145,6 +194,7 @@ cat .env | grep CLEARML
 ### Ошибка "No such file: train_features.csv"
 
 Данные не подготовлены. Запустите DVC:
+
 ```bash
 docker-compose run --rm dvc
 ```
@@ -155,7 +205,9 @@ docker-compose run --rm dvc
 2. Проверьте подключение к интернету
 3. Подождите 1-2 минуты (может быть задержка синхронизации)
 
-## 10. Полезные ссылки
+---
+
+## Полезные ссылки
 
 - [ClearML Documentation](https://clear.ml/docs/)
 - [ClearML Python SDK](https://clear.ml/docs/latest/docs/references/sdk)

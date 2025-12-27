@@ -1,0 +1,109 @@
+# Конфигурация MkDocs для ITMO EPLM Course
+# Документация: https://www.mkdocs.org/
+
+site_name: ITMO EPLM Course
+site_description: Инженерные практики машинного обучения - учебный проект ИТМО
+site_url: https://bovrrr.github.io/itmo-eplm-course
+repo_url: https://github.com/Bovrrr/itmo-eplm-course
+repo_name: Bovrrr/itmo-eplm-course
+edit_uri: edit/main/docs/
+
+# Тема Material
+theme:
+  name: material
+  language: ru
+  palette:
+    # Светлая тема
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Переключить на тёмную тему
+    # Тёмная тема
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Переключить на светлую тему
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+# Плагины
+plugins:
+  - search:
+      lang: ru
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 2
+            members_order: source
+
+# Навигация
+nav:
+  - Главная: index.md
+  - Начало работы:
+      - Установка: getting-started/installation.md
+      - Быстрый старт: getting-started/quickstart.md
+  - Руководства:
+      - Развёртывание: guides/setup.md
+      - Версионирование данных: guides/versioning.md
+      - ClearML интеграция: guides/clearml.md
+      - Воспроизводимость: guides/reproducibility.md
+  - API Reference:
+      - Обзор: api/index.md
+  - Эксперименты:
+      - Результаты: experiments/results.md
+      - Сравнение моделей: experiments/comparison.md
+  - О проекте: about.md
+
+# Расширения Markdown
+markdown_extensions:
+  # Подсветка синтаксиса
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  # Вкладки кода
+  - pymdownx.tabbed:
+      alternate_style: true
+  # Блоки предупреждений
+  - admonition
+  - pymdownx.details
+  # Таблица содержания
+  - toc:
+      permalink: true
+      toc_depth: 3
+  # Таблицы
+  - tables
+  # Списки задач
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  # Эмодзи
+  - pymdownx.emoji
+
+# Дополнительные настройки
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Bovrrr/itmo-eplm-course
+
+# Copyright
+copyright: Copyright &copy; 2025 ITMO EPLM Course
