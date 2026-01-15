@@ -1,7 +1,0 @@
-base: ../base/base_classifier.yaml
-model_class: SVC
-description: SVC with RBF kernel (C=10.0, gamma=scale)
-kernel: rbf
-C: 10.0
-gamma: scale
-probability: true

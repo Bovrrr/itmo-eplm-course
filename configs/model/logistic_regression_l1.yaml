@@ -1,6 +1,0 @@
-base: ../base/linear_models.yaml
-model_class: LogisticRegression
-description: Logistic Regression with L1 regularization (C=0.1)
-penalty: l1
-C: 0.1
-solver: liblinear

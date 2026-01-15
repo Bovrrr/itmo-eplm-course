@@ -1,0 +1,12 @@
+# SVC with RBF kernel (C=10.0)
+model_class: SVC
+description: "SVC with RBF kernel (C=10.0, gamma=scale)"
+
+# From base/base_classifier.yaml
+random_state: ${random_state}
+
+# Model-specific
+kernel: rbf
+C: 10.0
+gamma: scale
+probability: true

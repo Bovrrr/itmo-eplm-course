@@ -1,0 +1,18 @@
+# Hydra main configuration
+# Usage: Загружается через hydra.compose() или @hydra.main()
+
+defaults:
+  - pipeline: default
+  - model: random_forest_medium
+  - _self_
+
+# Global settings
+random_state: 42
+data_dir: data/processed
+features_dir: data/features
+models_dir: models
+
+# MLflow settings
+mlflow:
+  tracking_uri: "file:./mlruns"
+  experiment_name: "titanic_classification"

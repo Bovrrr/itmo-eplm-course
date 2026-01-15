@@ -1,6 +1,0 @@
-base: ../base/linear_models.yaml
-model_class: LogisticRegression
-description: Logistic Regression with L2 regularization (C=10.0)
-penalty: l2
-C: 10.0
-solver: lbfgs

@@ -1,10 +1,11 @@
-# Конфигурация ML pipeline
+# Pipeline configuration
+# Содержит настройки для data split, validation и model validation
 
 data_split:
   train_size: 0.7
   val_size: 0.15
   test_size: 0.15
-  random_state: 42
+  random_state: ${random_state}
   stratify: true
 
 data_validation:
@@ -18,6 +19,3 @@ model_validation:
   min_accuracy: 0.6
   min_f1_score: 0.5
   max_overfitting_gap: 0.1
-
-mlflow_tracking_uri: "file:./mlruns"
-mlflow_experiment_name: "titanic_classification"

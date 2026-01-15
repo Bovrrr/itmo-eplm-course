@@ -1,5 +1,0 @@
-base: ../base/tree_models.yaml
-model_class: RandomForestClassifier
-description: Random Forest with 200 trees and unlimited depth
-n_estimators: 200
-max_depth: null  # null = None в Python

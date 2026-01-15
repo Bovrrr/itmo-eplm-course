@@ -1,0 +1,12 @@
+# CatBoost shallow model
+model_class: CatBoostClassifier
+description: "CatBoost with 100 iterations and depth=4"
+
+# From base/base_classifier.yaml
+random_state: ${random_state}
+
+# Model-specific
+iterations: 100
+depth: 4
+learning_rate: 0.1
+verbose: false

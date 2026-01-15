@@ -1,0 +1,8 @@
+# K-Nearest Neighbors with k=3
+model_class: KNeighborsClassifier
+description: "K-Nearest Neighbors with k=3 (uniform weights)"
+
+# Model-specific
+n_neighbors: 3
+weights: uniform
+n_jobs: -1

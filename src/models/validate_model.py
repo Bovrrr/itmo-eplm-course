@@ -69,12 +69,6 @@ def validate_metrics(
 
 @click.command()
 @click.option(
-    "--config",
-    type=click.Path(exists=True, path_type=Path),
-    default="configs/pipeline.yaml",
-    help="Path to pipeline configuration file",
-)
-@click.option(
     "--metrics-path",
     type=click.Path(exists=True, path_type=Path),
     default="models/evaluation_metrics.json",
@@ -86,15 +80,14 @@ def validate_metrics(
     default="models",
     help="Directory to save validation report",
 )
-def main(config: Path, metrics_path: Path, output_dir: Path) -> None:
+def main(metrics_path: Path, output_dir: Path) -> None:
     """Валидировать качество обученной модели.
 
     Проверяет соответствие метрик заданным thresholds.
     """
     with stage_notification("Model Validation"):
-        # Загрузить конфигурацию
-        notify_info(f"Loading pipeline config from {config}")
-        pipeline_config = load_pipeline_config(config)
+        # Загрузить конфигурацию через Hydra
+        pipeline_config = load_pipeline_config()
         validation_config = pipeline_config.model_validation
 
         # Загрузить метрики

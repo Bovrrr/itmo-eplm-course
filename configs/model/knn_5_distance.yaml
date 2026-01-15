@@ -1,6 +1,0 @@
-base: ../base/base_classifier.yaml
-model_class: KNeighborsClassifier
-description: K-Nearest Neighbors with k=5 (distance weights)
-n_neighbors: 5
-weights: distance
-n_jobs: -1

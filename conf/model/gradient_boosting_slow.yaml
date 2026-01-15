@@ -1,0 +1,11 @@
+# Gradient Boosting with slow learning
+model_class: GradientBoostingClassifier
+description: "Gradient Boosting with slow learning (lr=0.01, n_est=200)"
+
+# From base/ensemble_models.yaml
+random_state: ${random_state}
+
+# Model-specific
+learning_rate: 0.01
+n_estimators: 200
+max_depth: 3

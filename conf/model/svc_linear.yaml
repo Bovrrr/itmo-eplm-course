@@ -1,0 +1,11 @@
+# Support Vector Classifier with linear kernel
+model_class: SVC
+description: "Support Vector Classifier with linear kernel"
+
+# From base/base_classifier.yaml
+random_state: ${random_state}
+
+# Model-specific
+kernel: linear
+C: 1.0
+probability: true

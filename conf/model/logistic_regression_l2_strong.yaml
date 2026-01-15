@@ -1,0 +1,12 @@
+# Logistic Regression with strong L2 regularization
+model_class: LogisticRegression
+description: "Logistic Regression with L2 regularization (C=10.0)"
+
+# From base/linear_models.yaml
+random_state: ${random_state}
+max_iter: 1000
+
+# Model-specific
+penalty: l2
+C: 10.0
+solver: lbfgs

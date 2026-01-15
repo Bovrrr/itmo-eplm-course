@@ -1,6 +1,0 @@
-base: ../base/base_classifier.yaml
-model_class: SVC
-description: Support Vector Classifier with linear kernel
-kernel: linear
-C: 1.0
-probability: true

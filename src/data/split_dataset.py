@@ -67,12 +67,6 @@ def split_data(
 
 @click.command()
 @click.option(
-    "--config",
-    type=click.Path(exists=True, path_type=Path),
-    default="configs/pipeline.yaml",
-    help="Path to pipeline configuration file",
-)
-@click.option(
     "--input",
     type=click.Path(exists=True, path_type=Path),
     default="data/processed/titanic_processed.csv",
@@ -84,16 +78,15 @@ def split_data(
     default="data/processed",
     help="Directory to save split datasets",
 )
-def main(config: Path, input: Path, output_dir: Path) -> None:
+def main(input: Path, output_dir: Path) -> None:
     """Разделить данные на train/val/test наборы.
 
-    Использует параметры из pipeline configuration (data_split секция).
+    Использует параметры из Hydra конфигурации (data_split секция).
     Сохраняет 3 CSV файла и JSON с метриками разделения.
     """
     with stage_notification("Data Split"):
-        # Загрузить конфигурацию
-        notify_info(f"Loading pipeline config from {config}")
-        pipeline_config = load_pipeline_config(config)
+        # Загрузить конфигурацию через Hydra
+        pipeline_config = load_pipeline_config()
         split_config = pipeline_config.data_split
 
         # Загрузить данные

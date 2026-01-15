@@ -1,8 +1,0 @@
-base: ../base/linear_models.yaml
-model_class: LogisticRegression
-description: Logistic Regression with ElasticNet (l1_ratio=0.5)
-penalty: elasticnet
-C: 1.0
-solver: saga
-l1_ratio: 0.5
-max_iter: 2000

@@ -19,10 +19,10 @@ stages:
   train:
     cmd: uv run python src/models/train_model.py random_forest_medium
     deps:
-    - path: configs/model/random_forest_medium.yaml
+    - path: conf/model/random_forest_medium.yaml
       hash: md5
-      md5: fec0522a7c342fe9899545b64157745c
-      size: 158
+      md5: 02206191ce9993808ad392cdb0c579e4
+      size: 307
     - path: data/features/train_features.csv
       hash: md5
       md5: 320ea68bcffc52323f24639858f4134c
@@ -33,23 +33,23 @@ stages:
       size: 11353
     - path: src/models/train_model.py
       hash: md5
-      md5: f5dbc1046bdd0afe31e47d2849191c43
-      size: 16109
+      md5: a7b2a5b992eb6ba433d6854f8c5dfe08
+      size: 15282
     outs:
     - path: models/metrics.json
       hash: md5
-      md5: 8e9cc2845b162483b937ce55d7a1107d
-      size: 244
+      md5: 4e9342223009e397f2a7ffb155236e66
+      size: 230
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 73f69156401ac9e2c5bb12f9f6db2a1a
+      size: 1357417
   split:
-    cmd: uv run python -m src.data.split_dataset --config configs/pipeline.yaml
+    cmd: uv run python -m src.data.split_dataset
     deps:
-    - path: configs/pipeline.yaml
+    - path: conf/pipeline/default.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      md5: 594649108217e29355c42990de25d41a
       size: 456
     - path: data/processed/titanic_processed.csv
       hash: md5
@@ -57,8 +57,8 @@ stages:
       size: 14496
     - path: src/data/split_dataset.py
       hash: md5
-      md5: 316480153858457d9bc52537c44e85c7
-      size: 6566
+      md5: ae63cbd8810cc46753934153826e5f2e
+      size: 6341
     outs:
     - path: data/processed/split_summary.json
       hash: md5
@@ -118,12 +118,11 @@ stages:
       md5: 4f94d0440a049b203056d99727aabc28
       size: 11353
   validate_data:
-    cmd: uv run python -m src.data.validate_dataset --config
-      configs/pipeline.yaml
+    cmd: uv run python -m src.data.validate_dataset
     deps:
-    - path: configs/pipeline.yaml
+    - path: conf/pipeline/default.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      md5: 594649108217e29355c42990de25d41a
       size: 456
     - path: data/processed/test.csv
       hash: md5
@@ -139,20 +138,19 @@ stages:
       size: 2216
     - path: src/data/validate_dataset.py
       hash: md5
-      md5: 09420771588d3ca720dd0bae664bb53f
-      size: 8206
+      md5: 80a76954977408638c7254a5b87a3fbe
+      size: 7973
     outs:
     - path: data/processed/validation_report.json
       hash: md5
       md5: 5a70bf249d66090db6b2b995f66de237
       size: 2868
   evaluate:
-    cmd: uv run python -m src.models.evaluate_model --config
-      configs/pipeline.yaml
+    cmd: uv run python -m src.models.evaluate_model
     deps:
-    - path: configs/pipeline.yaml
+    - path: conf/pipeline/default.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      md5: 594649108217e29355c42990de25d41a
       size: 456
     - path: data/features/test_features.csv
       hash: md5
@@ -160,47 +158,150 @@ stages:
       size: 11376
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 73f69156401ac9e2c5bb12f9f6db2a1a
+      size: 1357417
     - path: src/models/evaluate_model.py
       hash: md5
-      md5: fc0dfafb960aace92275f8f293a11e1c
-      size: 6680
+      md5: aa125ed0c819a3a3e1e521e4504e09ff
+      size: 6428
     outs:
     - path: models/evaluation_metrics.json
       hash: md5
-      md5: af80a79bf3123c8fd7f1bc6a1b264858
-      size: 157
+      md5: 0f5069f6e0c868b3cc1315ec3c516c93
+      size: 170
     - path: models/plots/confusion_matrix.json
       hash: md5
-      md5: 89dfd6e79aa0903ab797ea8ba4bfa24f
+      md5: 6c363119ac425171a8978c10f33a66b0
       size: 322
     - path: models/plots/roc_curve.json
       hash: md5
-      md5: 586c0f57358dbc4edb92185e39f89c42
-      size: 3775
+      md5: 839d78a4c147754220fb352f99b73c78
+      size: 3027
   validate_model:
-    cmd: uv run python -m src.models.validate_model --config
-      configs/pipeline.yaml
+    cmd: uv run python -m src.models.validate_model
     deps:
-    - path: configs/pipeline.yaml
+    - path: conf/pipeline/default.yaml
       hash: md5
-      md5: a785ba304e38b1c2403fc22b6ecda2e7
+      md5: 594649108217e29355c42990de25d41a
       size: 456
     - path: models/evaluation_metrics.json
       hash: md5
-      md5: af80a79bf3123c8fd7f1bc6a1b264858
-      size: 157
+      md5: 0f5069f6e0c868b3cc1315ec3c516c93
+      size: 170
     - path: models/model.pkl
       hash: md5
-      md5: a9ce6fbe4ae77e4e7e656f70e6b997b8
-      size: 1328297
+      md5: 73f69156401ac9e2c5bb12f9f6db2a1a
+      size: 1357417
     - path: src/models/validate_model.py
       hash: md5
-      md5: 7f34b3f5b05a63dea9c911197f16d001
-      size: 4543
+      md5: 691774f380fa420c026eb041b36faba9
+      size: 4310
     outs:
     - path: models/model_validation_report.json
       hash: md5
-      md5: 678edb6324655c32cee53a2856d832ad
-      size: 285
+      md5: a7742d16a85b5329e1595c3ee8bc9ecf
+      size: 298
+  fit_scaler:
+    cmd: uv run python -m src.features.fit_scaler
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 24bdbafba0e09587d61e65d303fa16ae
+      size: 10122
+    - path: src/features/fit_scaler.py
+      hash: md5
+      md5: cdbb001047df1634226c9543d8d24076
+      size: 2018
+    outs:
+    - path: data/features/scaler.pkl
+      hash: md5
+      md5: b56133abf1a21e0d0d5474c39af7b633
+      size: 1007
+  transform_features@train:
+    cmd: uv run python -m src.features.transform_features --split train
+    deps:
+    - path: data/features/scaler.pkl
+      hash: md5
+      md5: b56133abf1a21e0d0d5474c39af7b633
+      size: 1007
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 24bdbafba0e09587d61e65d303fa16ae
+      size: 10122
+    - path: src/features/transform_features.py
+      hash: md5
+      md5: 5845a60e3395f762a0a7b1dee1b347f1
+      size: 2514
+    outs:
+    - path: data/features/train_features.csv
+      hash: md5
+      md5: 320ea68bcffc52323f24639858f4134c
+      size: 52561
+  transform_features@val:
+    cmd: uv run python -m src.features.transform_features --split val
+    deps:
+    - path: data/features/scaler.pkl
+      hash: md5
+      md5: b56133abf1a21e0d0d5474c39af7b633
+      size: 1007
+    - path: data/processed/val.csv
+      hash: md5
+      md5: 6ad0d5c096a13bb5c0fe5d660446b622
+      size: 2216
+    - path: src/features/transform_features.py
+      hash: md5
+      md5: 5845a60e3395f762a0a7b1dee1b347f1
+      size: 2514
+    outs:
+    - path: data/features/val_features.csv
+      hash: md5
+      md5: 4f94d0440a049b203056d99727aabc28
+      size: 11353
+  transform_features@test:
+    cmd: uv run python -m src.features.transform_features --split test
+    deps:
+    - path: data/features/scaler.pkl
+      hash: md5
+      md5: b56133abf1a21e0d0d5474c39af7b633
+      size: 1007
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 09b2b3c2ca0de19c150d6c85bb869f88
+      size: 2232
+    - path: src/features/transform_features.py
+      hash: md5
+      md5: 5845a60e3395f762a0a7b1dee1b347f1
+      size: 2514
+    outs:
+    - path: data/features/test_features.csv
+      hash: md5
+      md5: 4cb6415f58899a715ecb90ee188dfe9c
+      size: 11376
+  feature_summary:
+    cmd: uv run python -m src.features.feature_summary
+    deps:
+    - path: data/features/scaler.pkl
+      hash: md5
+      md5: b56133abf1a21e0d0d5474c39af7b633
+      size: 1007
+    - path: data/features/test_features.csv
+      hash: md5
+      md5: 4cb6415f58899a715ecb90ee188dfe9c
+      size: 11376
+    - path: data/features/train_features.csv
+      hash: md5
+      md5: 320ea68bcffc52323f24639858f4134c
+      size: 52561
+    - path: data/features/val_features.csv
+      hash: md5
+      md5: 4f94d0440a049b203056d99727aabc28
+      size: 11353
+    - path: src/features/feature_summary.py
+      hash: md5
+      md5: f287f78f009478469e9f6de8fd3a48b9
+      size: 2891
+    outs:
+    - path: data/features/feature_summary.json
+      hash: md5
+      md5: 70d27bd24016ab22978d627b8caf7412
+      size: 714

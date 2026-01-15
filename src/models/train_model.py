@@ -44,13 +44,10 @@ def setup_mlflow_tracking() -> None:
 
 
 def create_model_from_config(config_name: str) -> Any:
-    """Создать модель из конфигурации.
-
-    Сначала пытается загрузить через Pydantic (configs/model/*.yaml),
-    затем fallback на старый способ (model_configs.py).
+    """Создать модель из Hydra конфигурации.
 
     Args:
-        config_name: Имя конфигурации модели.
+        config_name: Имя конфигурации модели (например, random_forest_medium).
 
     Returns:
         Экземпляр ML модели.
@@ -68,27 +65,14 @@ def create_model_from_config(config_name: str) -> Any:
         "KNeighborsClassifier": KNeighborsClassifier,
     }
 
-    # Попробовать загрузить через Pydantic
-    config_path = Path(f"configs/model/{config_name}.yaml")
-    if config_path.exists():
-        pydantic_config = load_model_config(config_path, validate=True)
-        # Проверка типа для MyPy (load_model_config всегда возвращает BaseModel)
-        if isinstance(pydantic_config, dict):
-            # Fallback на старый способ
-            model_class_name = pydantic_config["model_class"]
-            params = pydantic_config["params"]
-        else:
-            config_dict = pydantic_config.model_dump()
-            model_class_name = config_dict["model_class"]
+    # Загрузить через Hydra
+    pydantic_config = load_model_config(config_name)
+    config_dict = pydantic_config.model_dump()
+    model_class_name = config_dict["model_class"]
 
-            # Извлечь только параметры модели (убрать meta поля)
-            meta_fields = {"model_class", "description", "random_state"}
-            params = {k: v for k, v in config_dict.items() if k not in meta_fields}
-    else:
-        # Fallback на старый способ
-        config = get_model_config(config_name)
-        model_class_name = config["model_class"]
-        params = config["params"]
+    # Извлечь только параметры модели (убрать meta поля)
+    meta_fields = {"model_class", "description", "random_state"}
+    params = {k: v for k, v in config_dict.items() if k not in meta_fields}
 
     if model_class_name not in model_classes:
         raise ValueError(

@@ -134,18 +134,12 @@ def check_outliers(data: pd.DataFrame, std_threshold: float) -> dict[str, Any]:
 
 @click.command()
 @click.option(
-    "--config",
-    type=click.Path(exists=True, path_type=Path),
-    default="configs/pipeline.yaml",
-    help="Path to pipeline configuration file",
-)
-@click.option(
     "--data-dir",
     type=click.Path(exists=True, path_type=Path),
     default="data/processed",
     help="Directory with train/val/test datasets",
 )
-def main(config: Path, data_dir: Path) -> None:
+def main(data_dir: Path) -> None:
     """Валидировать качество данных (train/val/test).
 
     Проверяет:
@@ -156,9 +150,8 @@ def main(config: Path, data_dir: Path) -> None:
     Сохраняет отчёт в validation_report.json.
     """
     with stage_notification("Data Validation"):
-        # Загрузить конфигурацию
-        notify_info(f"Loading pipeline config from {config}")
-        pipeline_config = load_pipeline_config(config)
+        # Загрузить конфигурацию через Hydra
+        pipeline_config = load_pipeline_config()
         validation_config = pipeline_config.data_validation
 
         # Загрузить datasets

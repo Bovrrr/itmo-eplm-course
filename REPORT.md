@@ -1300,14 +1300,14 @@ mlflow ui --port 5000
 **Цель:** Создать автоматизированные ML пайплайны с использованием DVC Pipelines и системы управления конфигурациями на основе Pydantic для обеспечения надёжности и масштабируемости проекта.
 
 **Выбранные инструменты:**
-- **Оркестрация:** DVC Pipelines (расширение существующего pipeline)
-- **Управление конфигурациями:** Pydantic + расширенный YAML с композицией
+- **Оркестрация:** DVC Pipelines с `foreach` для параллельной обработки splits
+- **Управление конфигурациями:** Hydra (Compose API) + Pydantic для валидации
 
 **Выполнено:**
-- Расширен DVC pipeline с 2 до 7 stages с параллельным выполнением
-- Создана система управления конфигурациями на основе Pydantic с валидацией
-- Реализовано 18 конфигураций моделей с поддержкой композиции
-- Интегрирован мониторинг выполнения через DVC metrics и Rich notifications
+- Расширен DVC pipeline с использованием `foreach` для параллельной обработки train/val/test
+- Интегрирован Hydra для управления конфигурациями (замена самописного loader)
+- Реализовано 18 конфигураций моделей в Hydra формате
+- Добавлен правильный feature engineering: fit_scaler → transform_features (×3) → feature_summary
 - Обеспечена полная воспроизводимость через DVC, UV и фиксированные seeds
 
 ### 8.1 Оркестрация с DVC Pipelines (4 балла)
@@ -1319,69 +1319,50 @@ mlflow ui --port 5000
 prepare → train
 ```
 
-**После (ДЗ 4):** 7 stages с параллельным выполнением
+**После (ДЗ 4):** 10+ stages с DVC foreach для параллелизма
 ```
-prepare → split → feature_engineering → train → evaluate → validate_model
-                         ↓
-                   validate_data
+prepare → split ─┬─ fit_scaler → transform_features@{train,val,test} → feature_summary → train → evaluate → validate_model
+                 └─ validate_data
 ```
 
-**Новые stages:**
+**Ключевые stages:**
 
 1. **split** - Разделение данных на train/val/test
    - Стратифицированное разделение (70/15/15)
    - Генерация метрик split_summary.json
    - Сохранение 3 CSV файлов
 
-2. **feature_engineering** - Создание признаков
-   - Обработка train данных (копия с потенциалом расширения)
-   - Генерация feature_importance.json
-   - Параллельное выполнение с validate_data
+2. **fit_scaler** - Обучение StandardScaler на train данных
+   - Fit ТОЛЬКО на train (предотвращение data leakage)
+   - Сохранение scaler.pkl для transform stages
 
-3. **validate_data** - Валидация качества данных
+3. **transform_features** (DVC foreach) - Параллельная трансформация splits
+   - `transform_features@train`, `@val`, `@test` — три параллельных stage
+   - Применение scaler.transform() к каждому split
+   - Генерация `{split}_features.csv`
+
+4. **feature_summary** - Генерация отчёта о features
+   - Статистика по всем splits
+   - Параметры scaler (mean, scale)
+   - Сохранение feature_summary.json
+
+5. **validate_data** - Валидация качества данных
    - Проверка missing values, дубликатов, outliers
    - Генерация validation_report.json
-   - Параллельное выполнение с feature_engineering
 
-4. **evaluate** - Оценка модели на test set
-   - Вычисление метрик на тестовых данных
-   - Создание confusion matrix и ROC curve plots
-   - Генерация evaluation_metrics.json
+6. **train** / **evaluate** / **validate_model** - ML pipeline
+   - Обучение модели на train_features.csv
+   - Оценка на test_features.csv
+   - Валидация thresholds (accuracy > 0.6, f1 > 0.5)
 
-5. **validate_model** - Валидация качества модели
-   - Проверка соответствия thresholds (accuracy > 0.6, f1 > 0.5)
-   - Генерация model_validation_report.json
-   - Автоматический fail при несоответствии критериям
+**DVC DAG с foreach:**
 
-**DVC DAG (Скриншот 3):**
-```
-           +---------+
-           | prepare |
-           +---------+
-                *
-           +-------+
-           | split |
-           +-------+**
-        ***           ***
-+---------------+         +---------------------+
-| validate_data |         | feature_engineering |
-+---------------+         +---------------------+
-                               **        **
-                         +-------+
-                         | train |
-                         +-------+
-                        +----------+
-                        | evaluate |
-                        +----------+
-                   +----------------+
-                   | validate_model |
-                   +----------------+
-```
+![DVC DAG](docs/screenshots/hw04/dvc_dag_foreach.png)
 
-**Параллельное выполнение:**
-- `feature_engineering` и `validate_data` выполняются одновременно после `split`
-- DVC автоматически определяет возможность параллелизма на основе зависимостей
-- Ускорение выполнения pipeline на ~30-40%
+**Параллельное выполнение через foreach:**
+- `transform_features@train`, `@val`, `@test` выполняются параллельно
+- DVC автоматически создаёт три stage из одного определения
+- Каждый stage независим после fit_scaler
 
 **Кэширование:**
 - Все бинарные файлы (CSV, PKL) кэшируются через DVC
@@ -1443,28 +1424,45 @@ models/evaluation_metrics.json      0.6842      0.625       0.6122       0.6383 
 
 **Статус:** Мониторинг реализован через DVC metrics и Rich
 
-### 8.2 Управление конфигурациями с Pydantic (3 балла)
+### 8.2 Управление конфигурациями с Hydra (3 балла)
 
 #### Архитектура системы
 
-**Структура конфигураций:**
+**Hydra Compose API** — используется вместо `@hydra.main()` для совместимости с Click CLI и DVC.
+
+**Структура Hydra конфигураций:**
 ```
-configs/
-├── base/                        # Базовые конфигурации
-│   ├── base_classifier.yaml     # random_state: 42
-│   ├── linear_models.yaml       # max_iter: 1000
-│   ├── tree_models.yaml         # n_jobs: -1, min_samples_*
-│   └── ensemble_models.yaml     # n_estimators: 100
-│
-├── model/                       # 18 конфигураций моделей
-│   ├── logistic_regression_*.yaml (4 варианта)
-│   ├── svc_*.yaml (3 варианта)
-│   ├── random_forest_*.yaml (4 варианта)
-│   ├── gradient_boosting_*.yaml (3 варианта)
-│   ├── catboost_*.yaml (2 варианта)
-│   └── knn_*.yaml (2 варианта)
-│
-└── pipeline.yaml                # Конфигурация pipeline
+conf/                            # Hydra конфигурации
+├── config.yaml                  # Главный файл с defaults
+├── pipeline/
+│   └── default.yaml             # Конфигурация pipeline
+└── model/                       # 18 конфигураций моделей
+    ├── random_forest_medium.yaml
+    ├── logistic_regression_*.yaml (4 варианта)
+    ├── svc_*.yaml (3 варианта)
+    ├── gradient_boosting_*.yaml (3 варианта)
+    ├── catboost_*.yaml (2 варианта)
+    └── knn_*.yaml (2 варианта)
+```
+
+**Главный конфиг (conf/config.yaml):**
+
+![Hydra Config](docs/screenshots/hw04/hydra_config.png)
+
+```yaml
+defaults:
+  - pipeline: default
+  - model: random_forest_medium
+  - _self_
+
+random_state: 42
+data_dir: data/processed
+features_dir: data/features
+models_dir: models
+
+mlflow:
+  tracking_uri: "file:./mlruns"
+  experiment_name: "titanic_classification"
 ```
 
 **Pydantic схемы (src/config/schemas.py):**
@@ -1516,58 +1514,59 @@ class BaseModelConfig(BaseModel):
 
 **Статус:** Pydantic схемы реализованы с полной валидацией
 
-#### Композиция конфигураций
+#### Hydra Loader (src/config/hydra_loader.py)
 
-**Механизм наследования:**
-
-Поле `base` в конфигурации указывает на базовый файл:
-
-```yaml
-# configs/model/random_forest_medium.yaml
-base: ../../base/tree_models.yaml
-model_class: RandomForestClassifier
-description: "Random Forest with 100 trees and max_depth=10"
-n_estimators: 100
-max_depth: 10
-```
-
-Наследует из `tree_models.yaml`:
-- `random_state: 42`
-- `n_jobs: -1`
-- `min_samples_split: 2`
-- `min_samples_leaf: 1`
-
-**Loader (src/config/loader.py):**
+**Compose API подход:**
 
 ```python
-def load_model_config(path: Path, validate: bool = True) -> BaseModelConfig:
-    # 1. Загрузить YAML
-    config_data = load_yaml(path)
+from hydra import compose, initialize_config_dir
+from hydra.core.global_hydra import GlobalHydra
 
-    # 2. Если есть base, загрузить базовую конфигурацию
-    if "base" in config_data:
-        base_path = path.parent / config_data.pop("base")
-        base_data = load_yaml(base_path)
-        config_data = merge_configs(base_data, config_data)
+def load_hydra_config(
+    config_name: str = "config",
+    overrides: list[str] | None = None
+) -> DictConfig:
+    """Загрузить конфигурацию через Hydra Compose API."""
+    config_dir = Path("conf").absolute()
+    GlobalHydra.instance().clear()
 
-    # 3. Определить тип модели и создать соответствующий Pydantic объект
-    model_type = ModelType(config_data["model_class"])
-    config_class = MODEL_CONFIG_MAP[model_type]
+    with initialize_config_dir(config_dir=str(config_dir), version_base="1.3"):
+        cfg = compose(config_name=config_name, overrides=overrides or [])
+        return cfg
+```
 
-    # 4. Валидация через Pydantic
+**Проверка загрузки Hydra:**
+
+![Hydra Loader Test](docs/screenshots/hw04/hydra_loader_test.png)
+
+**Интерполяция переменных:**
+- `${random_state}` — ссылка на глобальный random_state
+- Hydra автоматически подставляет значения при загрузке
+
+**Интеграция с loader.py:**
+
+```python
+def load_model_config(model_name: str) -> ModelConfig:
+    # Загрузить через Hydra
+    config_data = load_model_config_hydra(model_name)
+
+    # Валидация через Pydantic
+    model_class = ModelType(config_data["model_class"])
+    config_class = MODEL_CONFIG_MAP[model_class]
     return config_class(**config_data)
 ```
 
-**Преимущества:**
-- DRY principle - нет дублирования общих параметров
-- Централизованное управление дефолтными значениями
-- Легко добавлять новые модели
+**Преимущества Hydra:**
+- Стандартная система композиции конфигураций
+- Интерполяция переменных (`${random_state}`)
+- Поддержка overrides из командной строки
+- Интеграция с OmegaConf
 
-**Статус:** Композиция конфигураций работает
+**Статус:** Hydra полностью интегрирован
 
 #### Конфигурация Pipeline
 
-**configs/pipeline.yaml:**
+**conf/pipeline/default.yaml:**
 ```yaml
 data_split:
   train_size: 0.7
@@ -1604,7 +1603,7 @@ class PipelineConfig(BaseModel):
 
 **Использование:**
 ```python
-pipeline_config = load_pipeline_config("configs/pipeline.yaml")
+pipeline_config = load_pipeline_config()  # Загружает из conf/pipeline/default.yaml
 train_size = pipeline_config.data_split.train_size  # type-safe!
 ```
 
@@ -1897,17 +1896,20 @@ uv run dvc metrics show --md
 uv run dvc dag
 ```
 
-#### Работа с конфигурациями
+#### Работа с Hydra конфигурациями
 
 ```bash
-# Валидация всех конфигураций
-uv run python -m src.config.loader
+# Список Hydra конфигураций
+ls conf/model/
 
-# Обучение с конкретной конфигурацией
+# Проверка загрузки через Hydra
+uv run python -c "from src.config.hydra_loader import load_hydra_config; from omegaconf import OmegaConf; print(OmegaConf.to_yaml(load_hydra_config()))"
+
+# Обучение с конкретной конфигурацией (выведет "✓ Loaded via Hydra")
 uv run python src/models/train_model.py random_forest_medium
 
-# Список доступных конфигураций
-ls configs/model/
+# Валидация всех конфигураций
+uv run python -m src.config.loader
 ```
 
 #### Тестирование воспроизводимости
@@ -1952,39 +1954,7 @@ uv run dvc pull
 
 ### 8.6 Скриншоты
 
-#### Валидация конфигураций
-
-**Команда:**
-```bash
-uv run python -m src.config.loader
-```
-
-**Что показывает:**
-- Валидация всех 18 Pydantic конфигураций
-- Проверка типов, ranges, совместимости параметров
-- Старые конфигурации проходят валидацию
-
-![Pydantic Validation](docs/screenshots/hw04/pydantic_validation.png)
-
----
-
-#### Работа split_dataset
-
-**Команда:**
-```bash
-uv run python -m src.data.split_dataset --config configs/pipeline.yaml
-```
-
-**Что показывает:**
-- Rich панели "Starting stage: Data Split"
-- Таблица с метриками split (757 total → 529 train, 114 val, 114 test)
-- Стратифицированное разделение с сохранением пропорций классов
-
-![Split Dataset Rich](docs/screenshots/hw04/split_dataset_rich.png)
-
----
-
-#### DVC DAG
+#### 1. DVC DAG с foreach
 
 **Команда:**
 ```bash
@@ -1992,129 +1962,132 @@ uv run dvc dag
 ```
 
 **Что показывает:**
-- 7 stages в pipeline
-- Параллельные ветви: validate_data || feature_engineering
-- Зависимости между stages
+- `fit_scaler` перед transform stages
+- `transform_features@train`, `@val`, `@test` — три параллельных stage
+- `feature_summary` после всех transform stages
+- Полный pipeline до validate_model
 
-![DVC DAG](docs/screenshots/hw04/dvc_dag_parallel.png)
+![DVC DAG](docs/screenshots/hw04/dvc_dag_foreach.png)
 
 ---
 
-#### DVC Repro с параллелизмом
+#### 2. Hydra конфигурация
 
 **Команда:**
 ```bash
-uv run dvc repro -v
+cat conf/config.yaml
 ```
 
 **Что показывает:**
-- Последовательное выполнение: prepare → split
-- Параллельное выполнение: feature_engineering || validate_data
-- Последовательное выполнение: train → evaluate → validate_model
-- Кэширование неизменённых stages
+- `defaults:` с pipeline и model
+- `random_state: 42`
+- Пути к данным и MLflow настройки
+
+![Hydra Config](docs/screenshots/hw04/hydra_config.png)
+
+---
+
+#### 3. Проверка Hydra loader
+
+**Команда:**
+```bash
+uv run python -c "from src.config.hydra_loader import load_hydra_config; from omegaconf import OmegaConf; cfg = load_hydra_config(); print(OmegaConf.to_yaml(cfg))"
+```
+
+**Что показывает:**
+- Загруженная конфигурация с pipeline, model, mlflow
+- Интерполяция `${random_state}` в параметрах модели
+- Все параметры RandomForest medium
+
+![Hydra Loader Test](docs/screenshots/hw04/hydra_loader_test.png)
+
+---
+
+#### 4. DVC Repro с foreach
+
+**Команда:**
+```bash
+uv run dvc repro --force
+```
+
+**Что показывает:**
+- Выполнение всех stages: prepare → split → fit_scaler → transform_features@{train,val,test} → feature_summary
+- validate_data с проверками качества данных
+- train → evaluate → validate_model
 - Rich панели для каждого stage
 
-![DVC Repro Part 1](docs/screenshots/hw04/dvc_repro_part1.png)
-![DVC Repro Part 2](docs/screenshots/hw04/dvc_repro_part2.png)
+![DVC Repro Part 1](docs/screenshots/hw04/dvc_repro_foreach_1.png)
+![DVC Repro Part 2](docs/screenshots/hw04/dvc_repro_foreach_2.png)
+![DVC Repro Part 3](docs/screenshots/hw04/dvc_repro_foreach_3.png)
 
 ---
 
-#### DVC Metrics
+#### 5. DVC Metrics
 
 **Команда:**
 ```bash
-uv run dvc metrics show --md
+echo "=== Model Metrics ===" && cat models/metrics.json | python -m json.tool && echo "\n=== Evaluation Metrics ===" && cat models/evaluation_metrics.json | python -m json.tool && echo "\n=== Feature Summary ===" && cat data/features/feature_summary.json | python -m json.tool
 ```
 
 **Что показывает:**
-- Все 7 метрик файлов в табличном формате
-- Training метрики (accuracy: 0.6579, f1: 0.5806)
-- Evaluation метрики (accuracy: 0.6842, f1: 0.625, roc_auc: 0.762)
+- Model Metrics: accuracy, precision, recall, f1_score, roc_auc
+- Evaluation Metrics: метрики на test set
+- Feature Summary: total_features, splits info, scaler параметры (mean, scale)
 
-![DVC Metrics](docs/screenshots/hw04/dvc_metrics_show.png)
-
----
-
-#### MLflow UI
-
-**Команда:**
-```bash
-uv run mlflow ui --port 5000
-```
-
-**Что показывает:**
-- Список runs с разными моделями (LogisticRegression, CatBoost)
-- Параметры из Pydantic конфигураций
-- Метрики для каждого run
-
-![MLflow Runs List](docs/screenshots/hw04/mlflow_runs_list.png)
-
----
-
-**Детали эксперимента CatBoost Deep:**
-- Параметры: depth=8, iterations=200, learning_rate=0.05
-- Метрики: accuracy=0.6754, f1=0.5934, roc_auc=0.7212
-- Время обучения: ~1.87 секунд
-
-![MLflow CatBoost Detail](docs/screenshots/hw04/mlflow_catboost_detail.png)
+![DVC Metrics](docs/screenshots/hw04/dvc_metrics_foreach.png)
 
 ### 8.7 Структура созданных файлов
 
 ```
-configs/
-├── base/                           # 4 базовые конфигурации
-│   ├── base_classifier.yaml
-│   ├── linear_models.yaml
-│   ├── tree_models.yaml
-│   └── ensemble_models.yaml
-│
-├── model/                          # 18 конфигураций моделей
-│   ├── logistic_regression_*.yaml
-│   ├── svc_*.yaml
-│   ├── random_forest_*.yaml
-│   ├── gradient_boosting_*.yaml
-│   ├── catboost_*.yaml
-│   └── knn_*.yaml
-│
-└── pipeline.yaml                   # Конфигурация pipeline
+conf/                               # Hydra конфигурации
+├── config.yaml                     # Главный файл с defaults
+├── pipeline/
+│   └── default.yaml                # Конфигурация pipeline
+└── model/                          # 18 конфигураций моделей
+    ├── random_forest_*.yaml (4)
+    ├── logistic_regression_*.yaml (4)
+    ├── svc_*.yaml (3)
+    ├── gradient_boosting_*.yaml (3)
+    ├── catboost_*.yaml (2)
+    └── knn_*.yaml (2)
 
 src/
 ├── config/                         # Система конфигураций
 │   ├── __init__.py
 │   ├── schemas.py                  # Pydantic модели (~400 строк)
-│   └── loader.py                   # Загрузка и композиция (~200 строк)
+│   ├── loader.py                   # Загрузка через Hydra (~140 строк)
+│   └── hydra_loader.py             # Hydra Compose API (~100 строк)
 │
 ├── utils/
 │   ├── __init__.py
 │   └── notifications.py            # Rich notifications (~100 строк)
 │
 ├── data/
-│   ├── make_dataset.py             # Модифицирован (убран StandardScaler)
-│   ├── split_dataset.py            # Новый (~150 строк)
-│   └── validate_dataset.py         # Новый (~200 строк)
+│   ├── make_dataset.py             # Подготовка данных
+│   ├── split_dataset.py            # Разделение на splits (~150 строк)
+│   └── validate_dataset.py         # Валидация данных (~200 строк)
 │
-├── features/
-│   └── build_features.py           # Новый (~100 строк)
+├── features/                       # Feature Engineering (НОВОЕ)
+│   ├── fit_scaler.py               # Обучение StandardScaler (~60 строк)
+│   ├── transform_features.py       # Трансформация split (~75 строк)
+│   └── feature_summary.py          # Генерация summary (~90 строк)
 │
 └── models/
-    ├── train_model.py              # Модифицирован (добавлен scaler)
-    ├── evaluate_model.py           # Новый (~150 строк)
-    └── validate_model.py           # Новый (~100 строк)
+    ├── train_model.py              # Обучение модели
+    ├── evaluate_model.py           # Оценка на test (~150 строк)
+    └── validate_model.py           # Валидация thresholds (~100 строк)
 
-scripts/
-└── clean_all.sh                    # Скрипт очистки (~20 строк)
-
-dvc.yaml                            # Расширен до 7 stages
+dvc.yaml                            # Pipeline с foreach для transform_features
 ```
 
 ### 8.8 Соответствие требованиям ДЗ 4
 
 | Требование | Баллы | Выполнено |
 |-----------|-------|----------|
-| **1. Оркестрация с DVC Pipelines** | 4 | 7 stages, параллелизм, кэширование |
-| **2. Управление конфигурациями (Pydantic)** | 3 | Pydantic схемы, композиция, валидация |
-| **3. Интеграция и тестирование** | 2 | DVC + Pydantic, мониторинг, воспроизводимость |
-| **4. Отчёт и документация** | 1 | REPORT.md обновлён, скриншоты готовы |
+| **1. Оркестрация с DVC Pipelines** | 4 | foreach для параллельной обработки splits, 10+ stages |
+| **2. Управление конфигурациями (Hydra)** | 3 | Hydra Compose API, 18 конфигураций, Pydantic валидация |
+| **3. Интеграция и тестирование** | 2 | DVC + Hydra + Pydantic, воспроизводимость |
+| **4. Отчёт и документация** | 1 | REPORT.md обновлён, 5 скриншотов |
 | **ИТОГО** | **10** | **Все требования выполнены** |
 
 ---
@@ -2127,4 +2100,4 @@ dvc.yaml                            # Расширен до 7 stages
 
 **ДЗ 3:** ✅ Трекинг экспериментов с MLflow реализован
 
-**ДЗ 4:** Автоматизация ML пайплайнов завершена
+**ДЗ 4:** ✅ Автоматизация ML пайплайнов завершена (DVC foreach + Hydra)

@@ -77,12 +77,6 @@ def calculate_feature_importance(data: pd.DataFrame) -> dict[str, float]:
 
 @click.command()
 @click.option(
-    "--config",
-    type=click.Path(exists=True, path_type=Path),
-    default="configs/pipeline.yaml",
-    help="Path to pipeline configuration file",
-)
-@click.option(
     "--data-dir",
     type=click.Path(exists=True, path_type=Path),
     default="data/processed",
@@ -94,7 +88,7 @@ def calculate_feature_importance(data: pd.DataFrame) -> dict[str, float]:
     default="data/features",
     help="Directory to save features",
 )
-def main(config: Path, data_dir: Path, output_dir: Path) -> None:
+def main(data_dir: Path, output_dir: Path) -> None:
     """Построить признаки для ML моделей.
 
     Применяет StandardScaler:
@@ -102,9 +96,8 @@ def main(config: Path, data_dir: Path, output_dir: Path) -> None:
     - Transform на train/val/test sets
     """
     with stage_notification("Feature Engineering"):
-        # Загрузить конфигурацию
-        notify_info(f"Loading pipeline config from {config}")
-        load_pipeline_config(config)  # Валидация конфигурации
+        # Загрузить конфигурацию через Hydra
+        load_pipeline_config()
 
         # Загрузить данные
         train_path = data_dir / "train.csv"

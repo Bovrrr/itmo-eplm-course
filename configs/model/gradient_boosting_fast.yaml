@@ -1,5 +1,0 @@
-base: ../base/ensemble_models.yaml
-model_class: GradientBoostingClassifier
-description: Gradient Boosting with fast learning (lr=0.1, n_est=100)
-learning_rate: 0.1
-max_depth: 3

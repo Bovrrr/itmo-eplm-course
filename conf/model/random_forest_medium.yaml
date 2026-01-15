@@ -1,0 +1,13 @@
+# Random Forest with 100 trees and max_depth=10
+model_class: RandomForestClassifier
+description: "Random Forest with 100 trees and max_depth=10"
+
+# From base/tree_models.yaml
+random_state: ${random_state}
+n_jobs: -1
+min_samples_split: 2
+min_samples_leaf: 1
+
+# Model-specific
+n_estimators: 100
+max_depth: 10

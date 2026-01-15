@@ -1,5 +1,5 @@
 stages:
-  # STAGE 1: Подготовка данных (существующий)
+  # STAGE 1: Подготовка данных
   prepare:
     cmd: uv run python -m src.data.make_dataset
     deps:
@@ -11,13 +11,13 @@ stages:
       - data/processed/data_summary.json:
           cache: false
 
-  # STAGE 2: Разделение на train/val/test (новый)
+  # STAGE 2: Разделение на train/val/test
   split:
-    cmd: uv run python -m src.data.split_dataset --config configs/pipeline.yaml
+    cmd: uv run python -m src.data.split_dataset
     deps:
       - data/processed/titanic_processed.csv
       - src/data/split_dataset.py
-      - configs/pipeline.yaml
+      - conf/pipeline/default.yaml
     outs:
       - data/processed/train.csv:
           cache: true
@@ -29,47 +29,66 @@ stages:
       - data/processed/split_summary.json:
           cache: false
 
-  # STAGE 3: Feature engineering (новый - параллельно с validate_data)
-  feature_engineering:
-    cmd: uv run python -m src.features.build_features --config configs/pipeline.yaml --data-dir data/processed
+  # STAGE 3a: Fit scaler на train (первый шаг feature engineering)
+  fit_scaler:
+    cmd: uv run python -m src.features.fit_scaler
     deps:
       - data/processed/train.csv
-      - data/processed/val.csv
-      - data/processed/test.csv
-      - src/features/build_features.py
-      - configs/pipeline.yaml
+      - src/features/fit_scaler.py
     outs:
-      - data/features/train_features.csv:
+      - data/features/scaler.pkl:
           cache: true
-      - data/features/val_features.csv:
-          cache: true
-      - data/features/test_features.csv:
-          cache: true
+
+  # STAGE 3b: Transform features (параллельно для каждого split)
+  transform_features:
+    foreach:
+      - train
+      - val
+      - test
+    do:
+      cmd: uv run python -m src.features.transform_features --split ${item}
+      deps:
+        - data/processed/${item}.csv
+        - data/features/scaler.pkl
+        - src/features/transform_features.py
+      outs:
+        - data/features/${item}_features.csv:
+            cache: true
+
+  # STAGE 3c: Feature summary (после всех transform)
+  feature_summary:
+    cmd: uv run python -m src.features.feature_summary
+    deps:
+      - data/features/train_features.csv
+      - data/features/val_features.csv
+      - data/features/test_features.csv
+      - data/features/scaler.pkl
+      - src/features/feature_summary.py
     metrics:
       - data/features/feature_summary.json:
           cache: false
 
-  # STAGE 4: Валидация данных (новый - параллельно с feature_engineering)
+  # STAGE 4: Валидация данных (параллельно с feature engineering)
   validate_data:
-    cmd: uv run python -m src.data.validate_dataset --config configs/pipeline.yaml
+    cmd: uv run python -m src.data.validate_dataset
     deps:
       - data/processed/train.csv
       - data/processed/val.csv
       - data/processed/test.csv
       - src/data/validate_dataset.py
-      - configs/pipeline.yaml
+      - conf/pipeline/default.yaml
     metrics:
       - data/processed/validation_report.json:
           cache: false
 
-  # STAGE 5: Обучение модели (модифицированный)
+  # STAGE 5: Обучение модели
   train:
     cmd: uv run python src/models/train_model.py random_forest_medium
     deps:
       - data/features/train_features.csv
       - data/features/val_features.csv
       - src/models/train_model.py
-      - configs/model/random_forest_medium.yaml
+      - conf/model/random_forest_medium.yaml
     outs:
       - models/model.pkl:
           cache: true
@@ -77,14 +96,14 @@ stages:
       - models/metrics.json:
           cache: false
 
-  # STAGE 6: Оценка модели (новый)
+  # STAGE 6: Оценка модели
   evaluate:
-    cmd: uv run python -m src.models.evaluate_model --config configs/pipeline.yaml
+    cmd: uv run python -m src.models.evaluate_model
     deps:
       - models/model.pkl
       - data/features/test_features.csv
       - src/models/evaluate_model.py
-      - configs/pipeline.yaml
+      - conf/pipeline/default.yaml
     metrics:
       - models/evaluation_metrics.json:
           cache: false
@@ -94,14 +113,14 @@ stages:
       - models/plots/roc_curve.json:
           cache: false
 
-  # STAGE 7: Валидация модели (новый)
+  # STAGE 7: Валидация модели
   validate_model:
-    cmd: uv run python -m src.models.validate_model --config configs/pipeline.yaml
+    cmd: uv run python -m src.models.validate_model
     deps:
       - models/model.pkl
       - models/evaluation_metrics.json
       - src/models/validate_model.py
-      - configs/pipeline.yaml
+      - conf/pipeline/default.yaml
     metrics:
       - models/model_validation_report.json:
           cache: false

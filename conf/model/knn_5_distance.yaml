@@ -1,0 +1,8 @@
+# K-Nearest Neighbors with k=5 and distance weights
+model_class: KNeighborsClassifier
+description: "K-Nearest Neighbors with k=5 (distance weights)"
+
+# Model-specific
+n_neighbors: 5
+weights: distance
+n_jobs: -1

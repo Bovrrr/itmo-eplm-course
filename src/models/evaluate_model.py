@@ -99,12 +99,6 @@ def generate_roc_curve_plot(y_test: pd.Series, y_pred_proba: np.ndarray) -> dict
 
 @click.command()
 @click.option(
-    "--config",
-    type=click.Path(exists=True, path_type=Path),
-    default="configs/pipeline.yaml",
-    help="Path to pipeline configuration file",
-)
-@click.option(
     "--model-path",
     type=click.Path(exists=True, path_type=Path),
     default="models/model.pkl",
@@ -122,15 +116,14 @@ def generate_roc_curve_plot(y_test: pd.Series, y_pred_proba: np.ndarray) -> dict
     default="models",
     help="Directory to save evaluation results",
 )
-def main(config: Path, model_path: Path, test_data: Path, output_dir: Path) -> None:
+def main(model_path: Path, test_data: Path, output_dir: Path) -> None:
     """Оценить обученную модель на test set.
 
     Вычисляет метрики и создаёт plots для DVC.
     """
     with stage_notification("Model Evaluation"):
-        # Загрузить конфигурацию
-        notify_info(f"Loading pipeline config from {config}")
-        load_pipeline_config(config)  # Валидация конфигурации
+        # Загрузить конфигурацию через Hydra (для валидации)
+        load_pipeline_config()
 
         # Загрузить модель
         notify_info(f"Loading model from {model_path}")
